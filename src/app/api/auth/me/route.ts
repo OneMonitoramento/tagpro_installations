@@ -15,6 +15,24 @@ const users = [
     name: 'Usuário',
     role: 'user' as const,
   },
+  {
+    id: '3',
+    username: 'lwsim',
+    name: 'LW SIM',
+    role: 'lwsim' as const,
+  },
+  {
+    id: '4',
+    username: 'tagpro',
+    name: 'TagPro',
+    role: 'tagpro' as const,
+  },
+  {
+    id: '5',
+    username: 'binsat',
+    name: 'Binsat',
+    role: 'binsat' as const,
+  },
 ];
 
 // Simular validação de token - em produção, usar JWT real

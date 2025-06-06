@@ -1,11 +1,21 @@
 // Path: ./src/types/index.ts
+
+// Tipos básicos
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
 export interface Placa {
   id: string;
   numeroPlaca: string;
-  instalado: boolean;
+  modelo: string;
   empresa: 'One' | 'Binsat';
+  instalado: boolean;
   dataInstalacao?: string;
-  modelo?: string;
+  dataUltimaAtualizacao: string;
 }
 
 export interface Estatisticas {
@@ -15,38 +25,31 @@ export interface Estatisticas {
   totalGeral?: number;
 }
 
-export interface PaginatedResponse<T> {
-  data: T[];
+// Tipos para API responses
+export interface PlacasResponse {
+  data: Placa[];
   nextCursor?: string;
   hasNextPage: boolean;
   totalCount: number;
-  success: boolean;
-  message?: string;
 }
 
-// Tipos de autenticação
-export interface User {
+export interface ApiError {
+  message: string;
+  status?: number;
+}
+
+// Tipos para mutations
+export interface UpdateStatusParams {
   id: string;
-  username: string;
-  name: string;
-  role: 'admin' | 'user';
+  instalado: boolean;
 }
 
-export interface LoginRequest {
+export interface LoginCredentials {
   username: string;
   password: string;
 }
 
-export interface LoginResponse {
-  message: string;
-  token: string;
+export interface AuthResponse {
   user: User;
-}
-
-export interface AuthContextData {
-  user: User | null;
-  isLoading: boolean;
-  login: (username: string, password: string) => Promise<void>;
-  logout: () => void;
-  isAuthenticated: boolean;
+  token: string;
 }

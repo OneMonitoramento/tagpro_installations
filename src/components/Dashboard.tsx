@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import { RefreshCw, Car, CheckCircle, XCircle, BarChart3, LogOut, User } from 'lucide-react';
-import { usePlacas, useEststatisticasGerais } from '@/hooks/usePlacas';
+import { usePlacas, useEstatisticasGerais } from '@/hooks/usePlacas';
 import { useAuth } from '@/contexts/AuthContext';
 import { Estatisticas } from '@/types';
 import InfiniteScrollList from './InfiniteScrollList';
@@ -11,63 +11,71 @@ import Loading from './Loading';
 import ErrorMessage from './ErrorMessage';
 
 const Dashboard = () => {
+  const { user, logout } = useAuth();
   const [abaAtiva, setAbaAtiva] = useState<'One' | 'Binsat'>('One');
   
-  // Queries com React Query
+  // Queries para ambas as empresas - sem restrições
   const queryOne = usePlacas('One');
   const queryBinsat = usePlacas('Binsat');
-  const estatisticasGerais = useEststatisticasGerais();
-  
-  // Auth
-  const { user, logout } = useAuth();
+  const estatisticasGerais = useEstatisticasGerais();
 
   // Query ativa baseada na aba
   const queryAtiva = abaAtiva === 'One' ? queryOne : queryBinsat;
 
+  // Componente para cards de estatísticas
   const EstatisticasCard = ({ titulo, stats, cor }: { 
     titulo: string; 
     stats: Estatisticas;
     cor: string;
-  }) => (
-    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-      <div className="flex items-center gap-2 mb-4">
-        <BarChart3 className={`h-6 w-6 ${cor}`} />
-        <h3 className="text-lg font-semibold text-gray-900">{titulo}</h3>
+  }) => {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div className="flex items-center gap-2 mb-4">
+          <BarChart3 className={`h-6 w-6 ${cor}`} />
+          <h3 className="text-lg font-semibold text-gray-900">{titulo}</h3>
+        </div>
+        
+        <div className="grid grid-cols-3 gap-4">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+            <div className="text-sm text-gray-600">Carregados</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-green-600">{stats.instaladas}</div>
+            <div className="text-sm text-gray-600">Instaladas</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-red-600">{stats.pendentes}</div>
+            <div className="text-sm text-gray-600">Pendentes</div>
+          </div>
+        </div>
+        
+        <div className="mt-4">
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div 
+              className="bg-green-500 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${stats.total > 0 ? (stats.instaladas / stats.total) * 100 : 0}%` }}
+            ></div>
+          </div>
+          <div className="text-sm text-gray-600 mt-1 text-center">
+            {stats.total > 0 ? Math.round((stats.instaladas / stats.total) * 100) : 0}% concluído
+          </div>
+        </div>
+        
+        {/* Indicador de total geral se disponível */}
+        {stats.totalGeral && stats.totalGeral > stats.total && (
+          <div className="mt-2 text-xs text-gray-500 text-center">
+            {stats.total} de {stats.totalGeral} placas carregadas
+          </div>
+        )}
       </div>
-      <div className="grid grid-cols-3 gap-4">
-        <div className="text-center">
-          <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-          <div className="text-sm text-gray-600">Carregados</div>
-        </div>
-        <div className="text-center">
-          <div className="text-2xl font-bold text-green-600">{stats.instaladas}</div>
-          <div className="text-sm text-gray-600">Instaladas</div>
-        </div>
-        <div className="text-center">
-          <div className="text-2xl font-bold text-red-600">{stats.pendentes}</div>
-          <div className="text-sm text-gray-600">Pendentes</div>
-        </div>
-      </div>
-      <div className="mt-4">
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div 
-            className="bg-green-500 h-2 rounded-full transition-all duration-300"
-            style={{ width: `${stats.total > 0 ? (stats.instaladas / stats.total) * 100 : 0}%` }}
-          ></div>
-        </div>
-        <div className="text-sm text-gray-600 mt-1 text-center">
-          {stats.total > 0 ? Math.round((stats.instaladas / stats.total) * 100) : 0}% concluído
-        </div>
-      </div>
-      
-      {/* Indicador de total geral se disponível */}
-      {stats.totalGeral && stats.totalGeral > stats.total && (
-        <div className="mt-2 text-xs text-gray-500 text-center">
-          {stats.total} de {stats.totalGeral} placas carregadas
-        </div>
-      )}
-    </div>
-  );
+    );
+  };
+
+  // Função para obter o nome da empresa para exibição
+  const getEmpresaDisplayName = (empresa: 'One' | 'Binsat') => {
+    return empresa === 'One' ? 'TagPro' : 'Binsat';
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -84,12 +92,8 @@ const Dashboard = () => {
               <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg">
                 <User className="h-4 w-4 text-gray-600" />
                 <span className="text-sm font-medium text-gray-700">{user?.name}</span>
-                <span className={`text-xs px-2 py-1 rounded-full ${
-                  user?.role === 'admin' 
-                    ? 'bg-blue-100 text-blue-700' 
-                    : 'bg-green-100 text-green-700'
-                }`}>
-                  {user?.role === 'admin' ? 'Admin' : 'Usuário'}
+                <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                  {user?.role || 'Usuário'}
                 </span>
               </div>
               
@@ -202,7 +206,7 @@ const Dashboard = () => {
         {/* Mensagens de Erro */}
         {queryOne.isError && (
           <ErrorMessage 
-            message={queryOne.error || 'Erro ao carregar dados da Empresa One'} 
+            message={queryOne.error || 'Erro ao carregar dados da Empresa TagPro'} 
             onRetry={() => queryOne.refetch()}
           />
         )}
@@ -216,7 +220,7 @@ const Dashboard = () => {
         {/* Estatísticas */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <EstatisticasCard 
-            titulo="Empresa One" 
+            titulo="Empresa TagPro" 
             stats={estatisticasGerais.estatisticasOne}
             cor="text-blue-600"
           />
@@ -227,13 +231,13 @@ const Dashboard = () => {
           />
         </div>
 
-        {/* Loading inicial */}
-        {estatisticasGerais.isLoading && (
+        {/* Loading inicial apenas se não houver dados carregados */}
+        {estatisticasGerais.isLoading && queryOne.placas.length === 0 && queryBinsat.placas.length === 0 && (
           <Loading message="Carregando dados do dashboard..." size="lg" />
         )}
 
-        {/* Lista com Abas e Infinite Scroll */}
-        {!estatisticasGerais.isLoading && (
+        {/* Lista com Abas e Infinite Scroll - sempre mostrar se houver pelo menos uma placa OU loading terminou */}
+        {(queryOne.placas.length > 0 || queryBinsat.placas.length > 0 || !estatisticasGerais.isLoading) && (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             {/* Abas */}
             <div className="border-b border-gray-200">
@@ -248,7 +252,7 @@ const Dashboard = () => {
                 >
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-blue-600 rounded"></div>
-                    Empresa One
+                    Empresa TagPro
                     <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-medium">
                       {queryOne.placas.length}
                       {queryOne.estatisticas.totalGeral && queryOne.estatisticas.totalGeral > queryOne.placas.length && 
@@ -283,7 +287,7 @@ const Dashboard = () => {
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-gray-900">
-                  Lista da Empresa {abaAtiva}
+                  Lista da Empresa {getEmpresaDisplayName(abaAtiva)}
                 </h2>
                 <div className="text-sm text-gray-600">
                   {queryAtiva.estatisticas.instaladas} de {queryAtiva.estatisticas.total} instaladas
@@ -300,7 +304,6 @@ const Dashboard = () => {
                 hasNextPage={queryAtiva.hasNextPage}
                 isFetchingNextPage={queryAtiva.isFetchingNextPage}
                 fetchNextPage={queryAtiva.fetchNextPage}
-                isUpdatingStatus={queryAtiva.isUpdatingStatus}
               />
             </div>
           </div>

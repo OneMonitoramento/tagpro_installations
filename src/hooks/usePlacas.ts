@@ -2,43 +2,69 @@
 'use client';
 
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Placa, PaginatedResponse } from '@/types';
-import { api } from '@/lib/axios';
+import { Placa, PlacasResponse, UpdateStatusParams, Estatisticas } from '@/types';
 
-// Função para buscar placas com paginação usando Axios
-const fetchPlacas = async ({ 
-  pageParam = '0', 
-  empresa 
-}: { 
-  pageParam?: string; 
-  empresa?: 'One' | 'Binsat' 
-}): Promise<PaginatedResponse<Placa>> => {
-  const params: any = {
-    cursor: pageParam,
-    limit: '10',
-  };
+// Simulação de API calls
+const fetchPlacas = async ({ pageParam = '0', empresa }: { pageParam?: string; empresa: 'One' | 'Binsat' }): Promise<PlacasResponse> => {
+  await new Promise(resolve => setTimeout(resolve, 800)); // Simular delay
+
+  const pageSize = 20;
+  const startIndex = parseInt(pageParam) * pageSize;
   
-  if (empresa) {
-    params.empresa = empresa;
+  // Dados mock mais realistas
+  const generatePlacas = (empresa: 'One' | 'Binsat', start: number, count: number): Placa[] => {
+    return Array.from({ length: count }, (_, i) => {
+      const index = start + i;
+      const empresaPrefix = empresa === 'One' ? 'TAG' : 'BIN';
+      return {
+        id: `${empresa.toLowerCase()}_${index + 1}`,
+        numeroPlaca: `${empresaPrefix}${String(index + 1).padStart(4, '0')}`,
+        modelo: `Modelo ${empresa} ${Math.floor(Math.random() * 10) + 1}`,
+        empresa,
+        instalado: Math.random() > 0.3, // 70% instaladas
+        dataInstalacao: Math.random() > 0.3 ? new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString() : undefined,
+        dataUltimaAtualizacao: new Date().toISOString(),
+      };
+    });
+  };
+
+  const totalItems = empresa === 'One' ? 156 : 89; // Diferentes totais por empresa
+  const items = generatePlacas(empresa, startIndex, Math.min(pageSize, totalItems - startIndex));
+  const hasNextPage = startIndex + pageSize < totalItems;
+
+  if (Math.random() > 0.95) { // 5% chance de erro para simulação
+    throw new Error(`Erro ao carregar dados da empresa ${empresa}`);
   }
 
-  const response = await api.get('/placas', { params });
-  return response.data;
+  return {
+    data: items,
+    nextCursor: hasNextPage ? String(parseInt(pageParam) + 1) : undefined,
+    hasNextPage,
+    totalCount: totalItems,
+  };
 };
 
-// Função para atualizar status da placa usando Axios
-const updatePlacaStatus = async ({ 
-  id, 
-  instalado 
-}: { 
-  id: string; 
-  instalado: boolean 
-}) => {
-  const response = await api.put('/placas', { id, instalado });
-  return response.data;
+const updatePlacaStatus = async ({ id, instalado }: UpdateStatusParams): Promise<Placa> => {
+  await new Promise(resolve => setTimeout(resolve, 500)); // Simular delay
+
+  if (Math.random() > 0.9) { // 10% chance de erro
+    throw new Error('Erro ao atualizar status da placa');
+  }
+
+  // Simular resposta da API
+  return {
+    id,
+    numeroPlaca: `MOCK${id.slice(-4)}`,
+    modelo: 'Modelo Updated',
+    empresa: id.startsWith('one') ? 'One' : 'Binsat',
+    instalado,
+    dataInstalacao: instalado ? new Date().toISOString() : undefined,
+    dataUltimaAtualizacao: new Date().toISOString(),
+  };
 };
 
-export const usePlacas = (empresa?: 'One' | 'Binsat') => {
+// Hook principal para placas
+export const usePlacas = (empresa: 'One' | 'Binsat') => {
   const queryClient = useQueryClient();
   
   // Query para buscar placas com infinite scroll
@@ -61,61 +87,35 @@ export const usePlacas = (empresa?: 'One' | 'Binsat') => {
     },
     staleTime: 5 * 60 * 1000, // 5 minutos
     retry: (failureCount, error) => {
-      // Não retry em erros 4xx
       if (error?.response?.status >= 400 && error?.response?.status < 500) {
         return false;
       }
-      // Retry até 2 vezes para outros erros
       return failureCount < 2;
     },
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 
-  // Mutation para atualizar status com optimistic updates
+  // Mutation para atualizar status
   const updateStatusMutation = useMutation({
     mutationFn: updatePlacaStatus,
-    onMutate: async ({ id, instalado }) => {
-      // Cancelar queries em andamento
-      const queryKey = ['placas', empresa];
-      await queryClient.cancelQueries({ queryKey });
-
-      // Snapshot dos dados atuais
-      const previousData = queryClient.getQueryData(queryKey);
-
-      // Optimistic update
-      queryClient.setQueryData(queryKey, (old: any) => {
-        if (!old) return old;
-
+    onSuccess: (updatedPlaca) => {
+      // Atualizar cache otimisticamente
+      queryClient.setQueryData(['placas', empresa], (oldData: any) => {
+        if (!oldData) return oldData;
+        
         return {
-          ...old,
-          pages: old.pages.map((page: PaginatedResponse<Placa>) => ({
+          ...oldData,
+          pages: oldData.pages.map((page: any) => ({
             ...page,
             data: page.data.map((placa: Placa) =>
-              placa.id === id
-                ? {
-                    ...placa,
-                    instalado,
-                    dataInstalacao: instalado 
-                      ? new Date().toISOString().split('T')[0] 
-                      : undefined,
-                  }
-                : placa
+              placa.id === updatedPlaca.id ? updatedPlaca : placa
             ),
           })),
         };
       });
-
-      return { previousData, queryKey };
     },
-    onError: (error, variables, context) => {
-      // Reverter em caso de erro
-      if (context?.previousData) {
-        queryClient.setQueryData(context.queryKey, context.previousData);
-      }
-    },
-    onSettled: () => {
-      // Invalidar queries relacionadas para garantir sincronização
-      queryClient.invalidateQueries({ queryKey: ['placas'] });
+    onError: (error) => {
+      console.error('Erro ao atualizar status:', error);
     },
   });
 
@@ -124,7 +124,7 @@ export const usePlacas = (empresa?: 'One' | 'Binsat') => {
   const totalCount = data?.pages[0]?.totalCount ?? 0;
 
   // Estatísticas calculadas
-  const estatisticas = {
+  const estatisticas: Estatisticas = {
     total: placas.length,
     instaladas: placas.filter(p => p.instalado).length,
     pendentes: placas.filter(p => !p.instalado).length,
@@ -151,8 +151,8 @@ export const usePlacas = (empresa?: 'One' | 'Binsat') => {
     }
   };
 
-  // Verificar se está carregando (inicial ou refetch)
-  const isLoadingAny = isLoading || isFetching;
+  // Verificar se está carregando (apenas carregamento inicial, não infinite scroll)
+  const isLoadingInitial = isLoading && placas.length === 0;
 
   // Formatar mensagem de erro
   const errorMessage = error?.message || 'Erro desconhecido';
@@ -163,7 +163,7 @@ export const usePlacas = (empresa?: 'One' | 'Binsat') => {
     estatisticas,
     
     // Estados de loading
-    isLoading: isLoadingAny,
+    isLoading: isLoadingInitial,
     isError,
     error: errorMessage,
     isFetchingNextPage,
@@ -175,17 +175,15 @@ export const usePlacas = (empresa?: 'One' | 'Binsat') => {
     // Ações
     refetch: refresh,
     toggleStatus,
-    
-    // Estados de mutation
-    isUpdatingStatus: updateStatusMutation.isPending,
   };
 };
 
-// Hook para estatísticas gerais (todas as empresas) usando Axios
-export const useEststatisticasGerais = () => {
+// Hook para estatísticas gerais (todas as empresas)
+export const useEstatisticasGerais = () => {
   const queryOne = usePlacas('One');
   const queryBinsat = usePlacas('Binsat');
 
+  // Combinar dados de ambas as empresas
   const todasPlacas = [...queryOne.placas, ...queryBinsat.placas];
   
   return {
@@ -198,8 +196,8 @@ export const useEststatisticasGerais = () => {
     estatisticasOne: queryOne.estatisticas,
     estatisticasBinsat: queryBinsat.estatisticas,
     
-    // Estados de loading
-    isLoading: queryOne.isLoading || queryBinsat.isLoading,
+    // Estados de loading - apenas se não houver dados ainda
+    isLoading: (queryOne.isLoading || queryBinsat.isLoading) && todasPlacas.length === 0,
     isError: queryOne.isError || queryBinsat.isError,
     
     // Ações combinadas

@@ -1,107 +1,107 @@
 // Path: ./src/contexts/AuthContext.tsx
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { api } from '@/lib/axios';
-import { User, AuthContextData } from '@/types';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { User, LoginCredentials } from '@/types';
 
-const AuthContext = createContext<AuthContextData>({} as AuthContextData);
+interface AuthContextType {
+  user: User | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  login: (credentials: LoginCredentials) => Promise<void>;
+  logout: () => void;
+}
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Dados mock de usuários para demonstração
+const mockUsers = [
+  { id: '1', username: 'admin', password: 'admin123', name: 'Administrador', email: 'admin@empresa.com', role: 'admin' },
+  { id: '2', username: 'user', password: 'user123', name: 'Usuário Padrão', email: 'user@empresa.com', role: 'user' },
+  { id: '3', username: 'lwsim', password: 'lwsim123', name: 'LW SIM', email: 'lwsim@empresa.com', role: 'lwsim' },
+  { id: '4', username: 'tagpro', password: 'tagpro123', name: 'TagPro User', email: 'tagpro@empresa.com', role: 'tagpro' },
+  { id: '5', username: 'binsat', password: 'binsat123', name: 'Binsat User', email: 'binsat@empresa.com', role: 'binsat' },
+];
+
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const isAuthenticated = !!user;
-
-  // Verificar se usuário está logado ao carregar a aplicação
+  // Verificar se há usuário salvo no localStorage ao inicializar
   useEffect(() => {
+    const checkAuth = () => {
+      try {
+        const savedUser = localStorage.getItem('auth_user');
+        if (savedUser) {
+          const parsedUser = JSON.parse(savedUser);
+          setUser(parsedUser);
+        }
+      } catch (error) {
+        console.error('Erro ao verificar autenticação:', error);
+        localStorage.removeItem('auth_user');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     checkAuth();
   }, []);
 
-  const checkAuth = async () => {
+  const login = async (credentials: LoginCredentials): Promise<void> => {
     try {
-      const token = localStorage.getItem('auth_token');
+      setIsLoading(true);
       
-      if (!token) {
-        console.log('🔍 No token found');
-        setIsLoading(false);
-        return;
+      // Simular delay de autenticação
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Verificar credenciais
+      const foundUser = mockUsers.find(
+        u => u.username === credentials.username && u.password === credentials.password
+      );
+
+      if (!foundUser) {
+        throw new Error('Credenciais inválidas');
       }
 
-      console.log('🔍 Checking auth with token:', token.substring(0, 20) + '...');
+      // Criar objeto de usuário (sem senha)
+      const { password, username, ...userWithoutPassword } = foundUser;
+      const authenticatedUser: User = userWithoutPassword;
 
-      // Verificar se token é válido
-      const response = await api.get('/auth/me');
-      console.log('✅ Auth check successful:', response.data.user);
-      setUser(response.data.user);
-    } catch (error: any) {
-      console.log('❌ Auth check failed:', error.response?.data?.message || error.message);
-      // Token inválido, remover
-      localStorage.removeItem('auth_token');
-      setUser(null);
+      setUser(authenticatedUser);
+      localStorage.setItem('auth_user', JSON.stringify(authenticatedUser));
+    } catch (error) {
+      console.error('Erro no login:', error);
+      throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const login = async (username: string, password: string) => {
-    try {
-      console.log('🔐 Attempting login for:', username);
-      
-      const response = await api.post('/auth/login', {
-        username,
-        password,
-      });
-
-      console.log('✅ Login successful:', response.data);
-
-      const { token, user: userData } = response.data;
-
-      // Salvar token
-      localStorage.setItem('auth_token', token);
-      console.log('💾 Token saved to localStorage');
-      
-      // Salvar usuário
-      setUser(userData);
-    } catch (error: any) {
-      console.error('❌ Login failed:', error.response?.data || error.message);
-      const message = error.response?.data?.message || 'Erro ao fazer login';
-      throw new Error(message);
-    }
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('auth_user');
   };
 
-  const logout = () => {
-    console.log('🚪 Logging out...');
-    
-    // Remover token
-    localStorage.removeItem('auth_token');
-    
-    // Limpar usuário
-    setUser(null);
-    
-    // Redirecionar para login
-    window.location.href = '/login';
+  const value: AuthContextType = {
+    user,
+    isLoading,
+    isAuthenticated: !!user,
+    login,
+    logout,
   };
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      isLoading,
-      login,
-      logout,
-      isAuthenticated,
-    }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
-}
+};
 
-export const useAuth = () => {
+// Hook para usar o contexto de autenticação
+export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+  if (context === undefined) {
+    throw new Error('useAuth deve ser usado dentro de um AuthProvider');
   }
-  
   return context;
 };

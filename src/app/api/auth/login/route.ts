@@ -17,6 +17,27 @@ const users = [
     name: 'Usuário',
     role: 'user' as const,
   },
+  {
+    id: '3',
+    username: 'lwsim',
+    password: 'lwsim123',
+    name: 'LW SIM',
+    role: 'lwsim' as const,
+  },
+  {
+    id: '4',
+    username: 'tagpro',
+    password: 'tagpro123',
+    name: 'TagPro',
+    role: 'tagpro' as const,
+  },
+  {
+    id: '5',
+    username: 'binsat',
+    password: 'binsat123',
+    name: 'Binsat',
+    role: 'binsat' as const,
+  },
 ];
 
 // Simular JWT token - em produção, usar biblioteca JWT real
@@ -86,8 +107,11 @@ export async function GET() {
     message: 'Login endpoint is working',
     method: 'POST required',
     demo_users: [
-      { username: 'admin', password: 'admin123', role: 'admin' },
-      { username: 'user', password: 'user123', role: 'user' }
+      { username: 'admin', password: 'admin123', role: 'admin', description: 'Acesso total' },
+      { username: 'user', password: 'user123', role: 'user', description: 'Usuário padrão (apenas visualização)' },
+      { username: 'lwsim', password: 'lwsim123', role: 'lwsim', description: 'Edita status de ambas as empresas' },
+      { username: 'tagpro', password: 'tagpro123', role: 'tagpro', description: 'Vê ambos, edita só Binsat' },
+      { username: 'binsat', password: 'binsat123', role: 'binsat', description: 'Vê status só da Binsat' }
     ]
   });
 }
