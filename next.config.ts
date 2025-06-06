@@ -1,7 +1,19 @@
-import type { NextConfig } from "next";
+// Path: ./next.config.js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  experimental: {
+    appDir: true,
+  },
+  // Configurações para API routes
+  async rewrites() {
+    return [];
+  },
+  // Log adicional em desenvolvimento
+  logging: {
+    fetches: {
+      fullUrl: true,
+    },
+  },
+}
 
-const nextConfig: NextConfig = {
-  /* config options here */
-};
-
-export default nextConfig;
+module.exports = nextConfig
