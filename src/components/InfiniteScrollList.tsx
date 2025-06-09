@@ -13,6 +13,26 @@ interface InfiniteScrollListProps {
   fetchNextPage: () => void;
 }
 
+// Função para obter configuração da empresa
+const getEmpresaConfig = (empresa: 'lwsim' | 'binsat') => {
+  const configs = {
+    lwsim: {
+      name: 'LW SIM',
+      bgColor: 'bg-blue-100',
+      textColor: 'text-blue-700',
+      dotColor: 'bg-blue-600',
+    },
+    binsat: {
+      name: 'Binsat',
+      bgColor: 'bg-purple-100',
+      textColor: 'text-purple-700',
+      dotColor: 'bg-purple-600',
+    },
+  };
+  
+  return configs[empresa];
+};
+
 // Componente para cada card de placa
 const PlacaCard = ({ 
   placa, 
@@ -21,22 +41,20 @@ const PlacaCard = ({
   placa: Placa; 
   onToggleStatus: (id: string) => void;
 }) => {
+  const empresaConfig = getEmpresaConfig(placa.empresa);
+
   return (
     <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <Car className="h-5 w-5 text-gray-600" />
           <span className="font-semibold text-gray-900">{placa.numeroPlaca}</span>
-          <span className={`text-xs px-2 py-1 rounded-full ${
-            placa.empresa === 'One' 
-              ? 'bg-blue-100 text-blue-700' 
-              : 'bg-purple-100 text-purple-700'
-          }`}>
-            {placa.empresa === 'One' ? 'TagPro' : 'Binsat'}
+          <span className={`text-xs px-2 py-1 rounded-full ${empresaConfig.bgColor} ${empresaConfig.textColor}`}>
+            {empresaConfig.name}
           </span>
         </div>
         
-        {/* Botão de Status - sem spinner */}
+        {/* Botão de Status */}
         <button
           onClick={() => onToggleStatus(placa.id)}
           className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium transition-colors ${
@@ -103,6 +121,9 @@ const InfiniteScrollList: React.FC<InfiniteScrollListProps> = ({
       <div className="text-center py-12">
         <Car className="mx-auto h-12 w-12 text-gray-400 mb-4" />
         <p className="text-gray-600 text-lg">Nenhuma placa encontrada</p>
+        <p className="text-gray-500 text-sm mt-2">
+          Tente ajustar os filtros de pesquisa para encontrar as placas desejadas
+        </p>
       </div>
     );
   }
@@ -124,12 +145,22 @@ const InfiniteScrollList: React.FC<InfiniteScrollListProps> = ({
         ))}
       </div>
 
-      {/* Barra de loading simples */}
+      {/* Indicador de loading para infinite scroll */}
       {isFetchingNextPage && (
-        <div className="mt-4">
-          <div className="w-full h-1 bg-gray-200 rounded-full overflow-hidden">
-            <div className="h-full bg-blue-600 rounded-full animate-pulse"></div>
+        <div className="mt-6 flex items-center justify-center py-4">
+          <div className="flex items-center gap-2 text-gray-600">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+            <span>Carregando mais placas...</span>
           </div>
+        </div>
+      )}
+
+      {/* Indicador de fim da lista */}
+      {!hasNextPage && placas.length > 0 && (
+        <div className="mt-6 text-center py-4 border-t border-gray-200">
+          <p className="text-gray-500 text-sm">
+            Todas as placas foram carregadas ({placas.length} total)
+          </p>
         </div>
       )}
     </>

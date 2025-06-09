@@ -12,7 +12,7 @@ export interface Placa {
   id: string;
   numeroPlaca: string;
   modelo: string;
-  empresa: 'One' | 'Binsat';
+  empresa: 'lwsim' | 'binsat';
   instalado: boolean;
   dataInstalacao?: string;
   dataUltimaAtualizacao: string;
@@ -23,6 +23,13 @@ export interface Estatisticas {
   instaladas: number;
   pendentes: number;
   totalGeral?: number;
+}
+
+// Tipos para filtros
+export interface FiltrosPlacas {
+  empresa?: 'lwsim' | 'binsat' | 'todos';
+  status?: 'instalado' | 'pendente' | 'todos';
+  pesquisa?: string;
 }
 
 // Tipos para API responses

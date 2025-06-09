@@ -4,36 +4,87 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Placa, PlacasResponse, UpdateStatusParams, Estatisticas } from '@/types';
 
-// Simulação de API calls
-const fetchPlacas = async ({ pageParam = '0', empresa }: { pageParam?: string; empresa: 'One' | 'Binsat' }): Promise<PlacasResponse> => {
+interface FiltrosPlacas {
+  empresa?: 'lwsim' | 'binsat' | 'todos';
+  status?: 'instalado' | 'pendente' | 'todos';
+  pesquisa?: string;
+}
+
+// Simulação de API calls com filtros
+const fetchPlacas = async ({ 
+  pageParam = '0', 
+  filtros 
+}: { 
+  pageParam?: string; 
+  filtros: FiltrosPlacas;
+}): Promise<PlacasResponse> => {
   await new Promise(resolve => setTimeout(resolve, 800)); // Simular delay
 
   const pageSize = 20;
   const startIndex = parseInt(pageParam) * pageSize;
   
-  // Dados mock mais realistas
-  const generatePlacas = (empresa: 'One' | 'Binsat', start: number, count: number): Placa[] => {
-    return Array.from({ length: count }, (_, i) => {
-      const index = start + i;
-      const empresaPrefix = empresa === 'One' ? 'TAG' : 'BIN';
-      return {
-        id: `${empresa.toLowerCase()}_${index + 1}`,
-        numeroPlaca: `${empresaPrefix}${String(index + 1).padStart(4, '0')}`,
-        modelo: `Modelo ${empresa} ${Math.floor(Math.random() * 10) + 1}`,
-        empresa,
+  // Gerar dados mock de ambas as empresas
+  const generateAllPlacas = (): Placa[] => {
+    const todasPlacas: Placa[] = [];
+    
+    // Gerar placas da LW SIM (antiga "One")
+    for (let i = 0; i < 156; i++) {
+      todasPlacas.push({
+        id: `lwsim_${i + 1}`,
+        numeroPlaca: `LWS${String(i + 1).padStart(4, '0')}`,
+        modelo: `Modelo LW SIM ${Math.floor(Math.random() * 10) + 1}`,
+        empresa: 'lwsim' as const,
         instalado: Math.random() > 0.3, // 70% instaladas
         dataInstalacao: Math.random() > 0.3 ? new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString() : undefined,
         dataUltimaAtualizacao: new Date().toISOString(),
-      };
-    });
+      });
+    }
+    
+    // Gerar placas da Binsat
+    for (let i = 0; i < 89; i++) {
+      todasPlacas.push({
+        id: `binsat_${i + 1}`,
+        numeroPlaca: `BIN${String(i + 1).padStart(4, '0')}`,
+        modelo: `Modelo Binsat ${Math.floor(Math.random() * 10) + 1}`,
+        empresa: 'binsat' as const,
+        instalado: Math.random() > 0.3, // 70% instaladas
+        dataInstalacao: Math.random() > 0.3 ? new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString() : undefined,
+        dataUltimaAtualizacao: new Date().toISOString(),
+      });
+    }
+    
+    return todasPlacas;
   };
 
-  const totalItems = empresa === 'One' ? 156 : 89; // Diferentes totais por empresa
-  const items = generatePlacas(empresa, startIndex, Math.min(pageSize, totalItems - startIndex));
+  let placasFiltradas = generateAllPlacas();
+
+  // Aplicar filtro de empresa
+  if (filtros.empresa && filtros.empresa !== 'todos') {
+    placasFiltradas = placasFiltradas.filter(placa => placa.empresa === filtros.empresa);
+  }
+
+  // Aplicar filtro de status
+  if (filtros.status && filtros.status !== 'todos') {
+    const statusBoolean = filtros.status === 'instalado';
+    placasFiltradas = placasFiltradas.filter(placa => placa.instalado === statusBoolean);
+  }
+
+  // Aplicar filtro de pesquisa
+  if (filtros.pesquisa && filtros.pesquisa.trim() !== '') {
+    const termoPesquisa = filtros.pesquisa.toLowerCase();
+    placasFiltradas = placasFiltradas.filter(placa => 
+      placa.numeroPlaca.toLowerCase().includes(termoPesquisa) ||
+      placa.modelo.toLowerCase().includes(termoPesquisa)
+    );
+  }
+
+  // Paginação
+  const totalItems = placasFiltradas.length;
+  const items = placasFiltradas.slice(startIndex, startIndex + pageSize);
   const hasNextPage = startIndex + pageSize < totalItems;
 
-  if (Math.random() > 0.95) { // 5% chance de erro para simulação
-    throw new Error(`Erro ao carregar dados da empresa ${empresa}`);
+  if (Math.random() > 0.98) { // 2% chance de erro para simulação
+    throw new Error('Erro ao carregar dados das placas');
   }
 
   return {
@@ -51,23 +102,26 @@ const updatePlacaStatus = async ({ id, instalado }: UpdateStatusParams): Promise
     throw new Error('Erro ao atualizar status da placa');
   }
 
+  // Determinar empresa baseada no ID
+  const empresa = id.startsWith('lwsim') ? 'lwsim' : 'binsat';
+
   // Simular resposta da API
   return {
     id,
     numeroPlaca: `MOCK${id.slice(-4)}`,
     modelo: 'Modelo Updated',
-    empresa: id.startsWith('one') ? 'One' : 'Binsat',
+    empresa,
     instalado,
     dataInstalacao: instalado ? new Date().toISOString() : undefined,
     dataUltimaAtualizacao: new Date().toISOString(),
   };
 };
 
-// Hook principal para placas
-export const usePlacas = (empresa: 'One' | 'Binsat') => {
+// Hook principal para placas com filtros
+export const usePlacas = (filtros: FiltrosPlacas = {}) => {
   const queryClient = useQueryClient();
   
-  // Query para buscar placas com infinite scroll
+  // Query para buscar placas com infinite scroll e filtros
   const {
     data,
     fetchNextPage,
@@ -79,8 +133,8 @@ export const usePlacas = (empresa: 'One' | 'Binsat') => {
     refetch,
     isFetching,
   } = useInfiniteQuery({
-    queryKey: ['placas', empresa],
-    queryFn: ({ pageParam }) => fetchPlacas({ pageParam, empresa }),
+    queryKey: ['placas', filtros],
+    queryFn: ({ pageParam }) => fetchPlacas({ pageParam, filtros }),
     initialPageParam: '0',
     getNextPageParam: (lastPage) => {
       return lastPage.hasNextPage ? lastPage.nextCursor : undefined;
@@ -100,7 +154,7 @@ export const usePlacas = (empresa: 'One' | 'Binsat') => {
     mutationFn: updatePlacaStatus,
     onSuccess: (updatedPlaca) => {
       // Atualizar cache otimisticamente
-      queryClient.setQueryData(['placas', empresa], (oldData: any) => {
+      queryClient.setQueryData(['placas', filtros], (oldData: any) => {
         if (!oldData) return oldData;
         
         return {
@@ -178,34 +232,38 @@ export const usePlacas = (empresa: 'One' | 'Binsat') => {
   };
 };
 
-// Hook para estatísticas gerais (todas as empresas)
+// Hook separado para estatísticas gerais (SEMPRE dados totais, sem filtros)
 export const useEstatisticasGerais = () => {
-  const queryOne = usePlacas('One');
-  const queryBinsat = usePlacas('Binsat');
+  const queryTotais = usePlacas({}); // Sempre sem filtros para estatísticas
+  
+  // Separar estatísticas por empresa (dados totais)
+  const estatisticasLwsim = {
+    total: queryTotais.placas.filter(p => p.empresa === 'lwsim').length,
+    instaladas: queryTotais.placas.filter(p => p.empresa === 'lwsim' && p.instalado).length,
+    pendentes: queryTotais.placas.filter(p => p.empresa === 'lwsim' && !p.instalado).length,
+  };
 
-  // Combinar dados de ambas as empresas
-  const todasPlacas = [...queryOne.placas, ...queryBinsat.placas];
+  const estatisticasBinsat = {
+    total: queryTotais.placas.filter(p => p.empresa === 'binsat').length,
+    instaladas: queryTotais.placas.filter(p => p.empresa === 'binsat' && p.instalado).length,
+    pendentes: queryTotais.placas.filter(p => p.empresa === 'binsat' && !p.instalado).length,
+  };
   
   return {
-    // Estatísticas gerais
-    totalVeiculos: todasPlacas.length,
-    totalInstalados: todasPlacas.filter(p => p.instalado).length,
-    totalPendentes: todasPlacas.filter(p => !p.instalado).length,
+    // Estatísticas gerais (SEMPRE TOTAIS)
+    totalVeiculos: queryTotais.placas.length,
+    totalInstalados: queryTotais.placas.filter(p => p.instalado).length,
+    totalPendentes: queryTotais.placas.filter(p => !p.instalado).length,
     
-    // Estatísticas por empresa
-    estatisticasOne: queryOne.estatisticas,
-    estatisticasBinsat: queryBinsat.estatisticas,
+    // Estatísticas por empresa (SEMPRE TOTAIS)
+    estatisticasLwsim,
+    estatisticasBinsat,
     
-    // Estados de loading - apenas se não houver dados ainda
-    isLoading: (queryOne.isLoading || queryBinsat.isLoading) && todasPlacas.length === 0,
-    isError: queryOne.isError || queryBinsat.isError,
+    // Estados de loading
+    isLoading: queryTotais.isLoading,
+    isError: queryTotais.isError,
     
-    // Ações combinadas
-    refetchAll: async () => {
-      await Promise.all([
-        queryOne.refetch(),
-        queryBinsat.refetch(),
-      ]);
-    },
+    // Ações
+    refetchAll: queryTotais.refetch,
   };
 };

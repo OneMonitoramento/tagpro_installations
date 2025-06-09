@@ -5,22 +5,27 @@ import React, { useState } from 'react';
 import { RefreshCw, Car, CheckCircle, XCircle, BarChart3, LogOut, User } from 'lucide-react';
 import { usePlacas, useEstatisticasGerais } from '@/hooks/usePlacas';
 import { useAuth } from '@/contexts/AuthContext';
-import { Estatisticas } from '@/types';
+import { FiltrosPlacas, Estatisticas } from '@/types';
 import InfiniteScrollList from './InfiniteScrollList';
+import FiltrosPlacasComponent from './FiltrosPlacas';
 import Loading from './Loading';
 import ErrorMessage from './ErrorMessage';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
-  const [abaAtiva, setAbaAtiva] = useState<'One' | 'Binsat'>('One');
   
-  // Queries para ambas as empresas - sem restrições
-  const queryOne = usePlacas('One');
-  const queryBinsat = usePlacas('Binsat');
-  const estatisticasGerais = useEstatisticasGerais();
+  // Estado dos filtros
+  const [filtros, setFiltros] = useState<FiltrosPlacas>({
+    empresa: 'todos',
+    status: 'todos',
+    pesquisa: '',
+  });
 
-  // Query ativa baseada na aba
-  const queryAtiva = abaAtiva === 'One' ? queryOne : queryBinsat;
+  // Queries separadas: 
+  // - estatisticasGerais: SEMPRE dados totais (sem filtros) para os cards do dashboard
+  // - queryPlacasLista: dados filtrados apenas para a lista de placas
+  const estatisticasGerais = useEstatisticasGerais(); // SEMPRE dados totais
+  const queryPlacasLista = usePlacas(filtros); // Apenas para a lista com filtros
 
   // Componente para cards de estatísticas
   const EstatisticasCard = ({ titulo, stats, cor }: { 
@@ -72,11 +77,6 @@ const Dashboard = () => {
     );
   };
 
-  // Função para obter o nome da empresa para exibição
-  const getEmpresaDisplayName = (empresa: 'One' | 'Binsat') => {
-    return empresa === 'One' ? 'TagPro' : 'Binsat';
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -85,7 +85,7 @@ const Dashboard = () => {
           <div className="flex items-center justify-between h-16">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Dashboard de Placas</h1>
-              <p className="text-sm text-gray-600">Gerenciamento de instalações por empresa</p>
+              <p className="text-sm text-gray-600">Gerenciamento unificado de instalações</p>
             </div>
             <div className="flex items-center gap-3">
               {/* User Info */}
@@ -100,8 +100,8 @@ const Dashboard = () => {
               {/* Refresh Button */}
               <button
                 onClick={() => {
-                  queryOne.refetch();
-                  queryBinsat.refetch();
+                  estatisticasGerais.refetchAll();
+                  queryPlacasLista.refetch();
                 }}
                 disabled={estatisticasGerais.isLoading}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -124,7 +124,7 @@ const Dashboard = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Informações de Sincronização e Veículos Ativos */}
+        {/* Informações Gerais - SEMPRE DADOS TOTAIS (não afetadas pelos filtros) */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {/* Última Sincronização */}
@@ -140,13 +140,13 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Total de Veículos Ativos */}
+            {/* Total de Veículos */}
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                 <Car className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <div className="text-sm text-gray-600">Veículos Carregados</div>
+                <div className="text-sm text-gray-600">Veículos Encontrados</div>
                 <div className="font-semibold text-gray-900">
                   {estatisticasGerais.totalVeiculos} veículos
                 </div>
@@ -204,94 +204,51 @@ const Dashboard = () => {
         </div>
 
         {/* Mensagens de Erro */}
-        {queryOne.isError && (
+        {queryPlacasLista.isError && (
           <ErrorMessage 
-            message={queryOne.error || 'Erro ao carregar dados da Empresa TagPro'} 
-            onRetry={() => queryOne.refetch()}
-          />
-        )}
-        {queryBinsat.isError && (
-          <ErrorMessage 
-            message={queryBinsat.error || 'Erro ao carregar dados da Empresa Binsat'} 
-            onRetry={() => queryBinsat.refetch()}
+            message={queryPlacasLista.error || 'Erro ao carregar dados das placas'} 
+            onRetry={() => queryPlacasLista.refetch()}
           />
         )}
 
-        {/* Estatísticas */}
+        {/* Estatísticas por Empresa - SEMPRE DADOS TOTAIS (não afetadas pelos filtros) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <EstatisticasCard 
-            titulo="Empresa TagPro" 
-            stats={estatisticasGerais.estatisticasOne}
+            titulo="LW SIM" 
+            stats={estatisticasGerais.estatisticasLwsim}
             cor="text-blue-600"
           />
           <EstatisticasCard 
-            titulo="Empresa Binsat" 
+            titulo="Binsat" 
             stats={estatisticasGerais.estatisticasBinsat}
             cor="text-purple-600"
           />
         </div>
 
+        {/* Barra de Pesquisa e Filtros */}
+        <FiltrosPlacasComponent
+          filtros={filtros}
+          onFiltrosChange={setFiltros}
+          totalResultados={queryPlacasLista.estatisticas.totalGeral || 0}
+          isLoading={queryPlacasLista.isLoading}
+        />
+
         {/* Loading inicial apenas se não houver dados carregados */}
-        {estatisticasGerais.isLoading && queryOne.placas.length === 0 && queryBinsat.placas.length === 0 && (
-          <Loading message="Carregando dados do dashboard..." size="lg" />
+        {queryPlacasLista.isLoading && queryPlacasLista.placas.length === 0 && (
+          <Loading message="Carregando placas..." size="lg" />
         )}
 
-        {/* Lista com Abas e Infinite Scroll - sempre mostrar se houver pelo menos uma placa OU loading terminou */}
-        {(queryOne.placas.length > 0 || queryBinsat.placas.length > 0 || !estatisticasGerais.isLoading) && (
+        {/* Lista de Placas - AFETADA PELOS FILTROS */}
+        {(queryPlacasLista.placas.length > 0 || !queryPlacasLista.isLoading) && (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            {/* Abas */}
-            <div className="border-b border-gray-200">
-              <nav className="flex space-x-8 px-6" aria-label="Tabs">
-                <button
-                  onClick={() => setAbaAtiva('One')}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                    abaAtiva === 'One'
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-blue-600 rounded"></div>
-                    Empresa TagPro
-                    <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-medium">
-                      {queryOne.placas.length}
-                      {queryOne.estatisticas.totalGeral && queryOne.estatisticas.totalGeral > queryOne.placas.length && 
-                        `/${queryOne.estatisticas.totalGeral}`
-                      }
-                    </span>
-                  </div>
-                </button>
-                <button
-                  onClick={() => setAbaAtiva('Binsat')}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                    abaAtiva === 'Binsat'
-                      ? 'border-purple-500 text-purple-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-purple-600 rounded"></div>
-                    Empresa Binsat
-                    <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs font-medium">
-                      {queryBinsat.placas.length}
-                      {queryBinsat.estatisticas.totalGeral && queryBinsat.estatisticas.totalGeral > queryBinsat.placas.length && 
-                        `/${queryBinsat.estatisticas.totalGeral}`
-                      }
-                    </span>
-                  </div>
-                </button>
-              </nav>
-            </div>
-
-            {/* Conteúdo da Aba */}
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-gray-900">
-                  Lista da Empresa {getEmpresaDisplayName(abaAtiva)}
+                  Lista de Placas
                 </h2>
                 <div className="text-sm text-gray-600">
-                  {queryAtiva.estatisticas.instaladas} de {queryAtiva.estatisticas.total} instaladas
-                  {queryAtiva.hasNextPage && (
+                  {queryPlacasLista.estatisticas.instaladas} de {queryPlacasLista.estatisticas.total} instaladas
+                  {queryPlacasLista.hasNextPage && (
                     <span className="ml-2 text-blue-600">(scroll para mais)</span>
                   )}
                 </div>
@@ -299,11 +256,11 @@ const Dashboard = () => {
 
               {/* Lista com Infinite Scroll */}
               <InfiniteScrollList
-                placas={queryAtiva.placas}
-                onToggleStatus={queryAtiva.toggleStatus}
-                hasNextPage={queryAtiva.hasNextPage}
-                isFetchingNextPage={queryAtiva.isFetchingNextPage}
-                fetchNextPage={queryAtiva.fetchNextPage}
+                placas={queryPlacasLista.placas}
+                onToggleStatus={queryPlacasLista.toggleStatus}
+                hasNextPage={queryPlacasLista.hasNextPage}
+                isFetchingNextPage={queryPlacasLista.isFetchingNextPage}
+                fetchNextPage={queryPlacasLista.fetchNextPage}
               />
             </div>
           </div>
