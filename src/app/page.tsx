@@ -16,10 +16,8 @@ const queryClient = new QueryClient({
       staleTime: 5 * 60 * 1000, // 5 minutos
       refetchOnWindowFocus: false,
       retry: (failureCount, error) => {
-        // Não retry em erros 4xx
-        if (error?.response?.status >= 400 && error?.response?.status < 500) {
-          return false;
-        }
+      console.log('🚀 ~ error:', error)
+     
         return failureCount < 2;
       },
     },

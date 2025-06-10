@@ -6,13 +6,13 @@
  */
 
 // Função para validar variáveis obrigatórias
-function requireEnv(key: string): string {
-  const value = process.env[key];
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${key}`);
-  }
-  return value;
-}
+// function requireEnv(key: string): string {
+//   const value = process.env[key];
+//   if (!value) {
+//     throw new Error(`Missing required environment variable: ${key}`);
+//   }
+//   return value;
+// }
 
 // Função para obter variável opcional com valor padrão
 function getEnv(key: string, defaultValue: string): string {

@@ -31,7 +31,7 @@ const FiltrosPlacasComponent: React.FC<FiltrosPlacasProps> = ({
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [pesquisaLocal]);
+  }, [filtros, onFiltrosChange, pesquisaLocal]);
 
   const handleEmpresaChange = (empresa: 'lwsim' | 'binsat' | 'todos') => {
     onFiltrosChange({
@@ -131,7 +131,7 @@ const FiltrosPlacasComponent: React.FC<FiltrosPlacasProps> = ({
                       name="empresa"
                       value={opcao.value}
                       checked={filtros.empresa === opcao.value || (!filtros.empresa && opcao.value === 'todos')}
-                      onChange={() => handleEmpresaChange(opcao.value as any)}
+                      onChange={() => handleEmpresaChange(opcao.value as "lwsim" | "binsat" | "todos")}
                       className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                     />
                     <span className="ml-2 text-sm text-gray-700">{opcao.label}</span>

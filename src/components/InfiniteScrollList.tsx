@@ -90,7 +90,7 @@ const InfiniteScrollList: React.FC<InfiniteScrollListProps> = ({
   isFetchingNextPage,
   fetchNextPage,
 }) => {
-  const observerRef = useRef<IntersectionObserver>();
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
   // Callback para intersection observer
   const lastElementRefCallback = useCallback((node: HTMLDivElement | null) => {

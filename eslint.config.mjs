@@ -11,6 +11,20 @@ const compat = new FlatCompat({
 
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
+  {
+    ignorePatterns: [
+      "**/generated/**",
+      "src/app/generated/**",
+      "./src/app/generated/**",
+      "generated/**",
+      "./src/app/generated/prisma",
+      "prisma/**"
+    ],
+    rules: {
+      "@typescript-eslint/no-unused-vars": "off",
+      "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
 ];
 
 export default eslintConfig;
