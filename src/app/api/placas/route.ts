@@ -1,125 +1,108 @@
 // Path: ./src/app/api/placas/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { Placa } from '@/types';
+import { db } from '@/lib/db';
+import { sgaHinovaVehicle } from '@/lib/db/sgaHinovaVehicle';
+import { and, eq, like, or, count, desc, lt } from 'drizzle-orm';
 
-// Dados simulados expandidos - substitua por conexão com banco de dados
-const generatePlacasSimuladas = (): Placa[] => {
-  const modelos = [
-    'Honda Civic', 'Toyota Corolla', 'Volkswagen Gol', 'Chevrolet Onix', 'Ford Ka',
-    'Hyundai HB20', 'Nissan March', 'Renault Kwid', 'Fiat Argo', 'Peugeot 208',
-    'Honda HR-V', 'Toyota Yaris', 'VW Polo', 'Chevrolet Tracker', 'Ford EcoSport',
-    'Hyundai Creta', 'Nissan Kicks', 'Renault Captur', 'Fiat Toro', 'Peugeot 2008',
-    'Honda City', 'Toyota Etios', 'VW T-Cross', 'Chevrolet Prisma', 'Ford Fiesta',
-    'Hyundai i30', 'Nissan Versa', 'Renault Sandero', 'Fiat Cronos', 'Peugeot 3008'
-  ];
-
-  const placas = [];
-  
-  // Gerar placas para LW SIM (156 placas)
-  for (let i = 0; i < 156; i++) {
-    const instalado = Math.random() > 0.3; // 70% chance de estar instalado
-    const dataInstalacao = instalado 
-      ? new Date(2025, 4, Math.floor(Math.random() * 30) + 1).toISOString().split('T')[0]
-      : undefined;
-
-    placas.push({
-      id: `lwsim_${i + 1}`,
-      numeroPlaca: `LWS${String(i + 1).padStart(4, '0')}`,
-      instalado,
-      dataInstalacao,
-      modelo: modelos[Math.floor(Math.random() * modelos.length)],
-      empresa: 'lwsim' as const,
-      dataUltimaAtualizacao: new Date().toISOString(),
-    });
-  }
-
-  // Gerar placas para Binsat (89 placas)
-  for (let i = 0; i < 89; i++) {
-    const instalado = Math.random() > 0.3; // 70% chance de estar instalado
-    const dataInstalacao = instalado 
-      ? new Date(2025, 4, Math.floor(Math.random() * 30) + 1).toISOString().split('T')[0]
-      : undefined;
-
-    placas.push({
-      id: `binsat_${i + 1}`,
-      numeroPlaca: `BIN${String(i + 1).padStart(4, '0')}`,
-      instalado,
-      dataInstalacao,
-      modelo: modelos[Math.floor(Math.random() * modelos.length)],
-      empresa: 'binsat' as const,
-      dataUltimaAtualizacao: new Date().toISOString(),
-    });
-  }
-
-  return placas;
-};
-
-// Cache das placas geradas
-let allPlacas: Placa[] | null = null;
-
-const getAllPlacas = (): Placa[] => {
-  if (!allPlacas) {
-    allPlacas = generatePlacasSimuladas();
-  }
-  return allPlacas;
+// Função para mapear dados do banco para o formato Placa
+const mapVehicleToPlaca = (vehicle: any): Placa => {
+  return {
+    id: vehicle.id.toString(),
+    numeroPlaca: vehicle.plate,
+    modelo: vehicle.model || 'Modelo não informado',
+    empresa: vehicle.company === 'lw_sim' ? 'lwsim' : 'binsat',
+    instalado: vehicle.status === 'instalado',
+    dataInstalacao: vehicle.status === 'instalado' ? vehicle.updatedAt?.toISOString().split('T')[0] : undefined,
+    dataUltimaAtualizacao: vehicle.updatedAt?.toISOString() || new Date().toISOString(),
+    vin: vehicle.vin || undefined,
+    renavam: vehicle.renavam || undefined,
+  };
 };
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const cursor = searchParams.get('cursor');
+    const page = parseInt(searchParams.get('page') || '0');
     const limit = parseInt(searchParams.get('limit') || '20');
     const empresa = searchParams.get('empresa') as 'lwsim' | 'binsat' | 'todos' | null;
     const status = searchParams.get('status') as 'instalado' | 'pendente' | 'todos' | null;
     const pesquisa = searchParams.get('pesquisa') || '';
+    
 
-    console.log('🔍 Filtros recebidos:', { empresa, status, pesquisa });
 
-    // Simular delay da API
-    await new Promise(resolve => setTimeout(resolve, 800));
+    // Construir condições de filtro
+    const conditions = [];
 
-    // Obter todas as placas
-    let placasFiltradas = getAllPlacas();
-
-    // Aplicar filtro de empresa
+    // Filtro de empresa
     if (empresa && empresa !== 'todos') {
-      placasFiltradas = placasFiltradas.filter(placa => placa.empresa === empresa);
+      const companyValue = empresa === 'lwsim' ? 'lw_sim' : 'binsat';
+      conditions.push(eq(sgaHinovaVehicle.company, companyValue));
     }
 
-    // Aplicar filtro de status
+    // Filtro de status
     if (status && status !== 'todos') {
-      const statusBoolean = status === 'instalado';
-      placasFiltradas = placasFiltradas.filter(placa => placa.instalado === statusBoolean);
+      const statusValue = status === 'instalado' ? 'instalado' : 'pendente';
+      conditions.push(eq(sgaHinovaVehicle.status, statusValue));
     }
 
-    // Aplicar filtro de pesquisa
+    // Filtro de pesquisa
     if (pesquisa && pesquisa.trim() !== '') {
-      const termoPesquisa = pesquisa.toLowerCase();
-      placasFiltradas = placasFiltradas.filter(placa => 
-        placa.numeroPlaca.toLowerCase().includes(termoPesquisa) ||
-        placa.modelo.toLowerCase().includes(termoPesquisa)
+      const termoPesquisa = `%${pesquisa.toLowerCase()}%`;
+      conditions.push(
+        or(
+          like(sgaHinovaVehicle.plate, termoPesquisa),
+          like(sgaHinovaVehicle.model, termoPesquisa),
+          like(sgaHinovaVehicle.vin, termoPesquisa),
+          like(sgaHinovaVehicle.renavam, termoPesquisa)
+        )
       );
     }
 
+    // Query principal para buscar veículos
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    console.log('🚀 ~ GET ~ whereClause:', whereClause)
+    
+    // Calcular offset
+    const offset = page * limit;
+
+    console.log('🔍 Filtros recebidos:', { empresa, status, pesquisa, page, limit,offset });
+
+    
+    // Buscar veículos com paginação simples
+    const vehicles = await db
+      .select()
+      .from(sgaHinovaVehicle)
+      .where(whereClause)
+      .orderBy(desc(sgaHinovaVehicle.sgaCreatedAt), desc(sgaHinovaVehicle.id)) // Ordenar por sgaCreatedAt e ID decrescente
+      .limit(limit + 1) // +1 para verificar se há próxima página
+      .offset(offset);
+
+    // Verificar se há próxima página
+    const hasNextPage = vehicles.length > limit;
+    const paginatedVehicles = hasNextPage ? vehicles.slice(0, limit) : vehicles;
+    const nextPage = hasNextPage ? page + 1 : undefined;
+
+    // Contar total de registros para estatísticas
+    const [{ total }] = await db
+      .select({ total: count() })
+      .from(sgaHinovaVehicle)
+      .where(whereClause);
+
+    // Mapear veículos para formato Placa
+    const placas = paginatedVehicles.map(mapVehicleToPlaca);
+
     console.log('📊 Resultados:', {
-      total: getAllPlacas().length,
-      filtradas: placasFiltradas.length,
+      total: total,
+      retornados: placas.length,
       filtros: { empresa, status, pesquisa }
     });
 
-    // Paginação
-    const startIndex = cursor ? parseInt(cursor) : 0;
-    const endIndex = startIndex + limit;
-    const paginatedPlacas = placasFiltradas.slice(startIndex, endIndex);
-    
-    const hasNextPage = endIndex < placasFiltradas.length;
-    const nextCursor = hasNextPage ? String(endIndex) : undefined;
-
     return NextResponse.json({
-      data: paginatedPlacas,
-      nextCursor,
+      data: placas,
+      nextPage,
       hasNextPage,
-      totalCount: placasFiltradas.length,
+      totalCount: total,
       success: true,
       message: 'Placas carregadas com sucesso',
       filtros: { empresa, status, pesquisa }
@@ -129,7 +112,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         data: [],
-        nextCursor: undefined,
+        nextPage: undefined,
         hasNextPage: false,
         totalCount: 0,
         success: false,
@@ -147,38 +130,54 @@ export async function PUT(request: NextRequest) {
 
     console.log('🔄 Atualizando status:', { id, instalado });
 
-    // Simular delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    // Atualizar na lista local para simulação
-    const placas = getAllPlacas();
-    const placaIndex = placas.findIndex(p => p.id === id);
-    
-    if (placaIndex !== -1) {
-      placas[placaIndex] = {
-        ...placas[placaIndex],
-        instalado,
-        dataInstalacao: instalado ? new Date().toISOString().split('T')[0] : undefined,
-        dataUltimaAtualizacao: new Date().toISOString(),
-      };
-
-      console.log('✅ Status atualizado:', placas[placaIndex]);
-
-      return NextResponse.json({
-        data: placas[placaIndex],
-        message: 'Status atualizado com sucesso',
-        success: true
-      });
-    } else {
+    const vehicleId = parseInt(id);
+    if (isNaN(vehicleId)) {
       return NextResponse.json(
         {
           data: null,
-          message: 'Placa não encontrada',
+          message: 'ID inválido',
+          success: false
+        },
+        { status: 400 }
+      );
+    }
+
+    // Atualizar no banco de dados
+    await db
+      .update(sgaHinovaVehicle)
+      .set({
+        status: instalado ? 'instalado' : 'pendente',
+        updatedAt: new Date()
+      })
+      .where(eq(sgaHinovaVehicle.id, vehicleId));
+
+    // Buscar o veículo atualizado
+    const updatedVehicles = await db
+      .select()
+      .from(sgaHinovaVehicle)
+      .where(eq(sgaHinovaVehicle.id, vehicleId));
+
+    if (updatedVehicles.length === 0) {
+      return NextResponse.json(
+        {
+          data: null,
+          message: 'Veículo não encontrado',
           success: false
         },
         { status: 404 }
       );
     }
+
+    const updatedVehicle = updatedVehicles[0];
+    const placaAtualizada = mapVehicleToPlaca(updatedVehicle);
+
+    console.log('✅ Status atualizado:', placaAtualizada);
+
+    return NextResponse.json({
+      data: placaAtualizada,
+      message: 'Status atualizado com sucesso',
+      success: true
+    });
   } catch (error) {
     console.error('💥 Erro ao atualizar status:', error);
     return NextResponse.json(

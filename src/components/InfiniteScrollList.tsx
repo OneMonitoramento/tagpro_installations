@@ -73,8 +73,14 @@ const PlacaCard = ({
         </button>
       </div>
       
-      <div className="text-sm text-gray-600">
-        <p className="mb-1">Modelo: {placa.modelo}</p>
+      <div className="text-sm text-gray-600 space-y-1">
+        <p>Modelo: {placa.modelo}</p>
+        {placa.vin && (
+          <p>VIN: <span className="font-mono text-xs">{placa.vin}</span></p>
+        )}
+        {placa.renavam && (
+          <p>RENAVAM: <span className="font-mono text-xs">{placa.renavam}</span></p>
+        )}
         {placa.instalado && placa.dataInstalacao && (
           <p>Instalado em: {new Date(placa.dataInstalacao).toLocaleDateString('pt-BR')}</p>
         )}
@@ -134,7 +140,7 @@ const InfiniteScrollList: React.FC<InfiniteScrollListProps> = ({
       <div className="space-y-4">
         {placas.map((placa, index) => (
           <div
-            key={placa.id}
+            key={placa.id} // Usar ID único do registro do banco
             ref={index === placas.length - 1 ? lastElementRefCallback : null}
           >
             <PlacaCard

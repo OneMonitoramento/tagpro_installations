@@ -16,6 +16,8 @@ export interface Placa {
   instalado: boolean;
   dataInstalacao?: string;
   dataUltimaAtualizacao: string;
+  vin?: string;
+  renavam?: string;
 }
 
 export interface Estatisticas {

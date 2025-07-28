@@ -3,6 +3,7 @@
 
 import {
   useInfiniteQuery,
+  useQuery,
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
@@ -19,104 +20,43 @@ interface FiltrosPlacas {
   pesquisa?: string;
 }
 
-// Simulação de API calls com filtros
+// Chamada real para a API de placas
 const fetchPlacas = async ({
-  pageParam = "0",
+  pageParam,
   filtros,
 }: {
-  pageParam?: string;
+  pageParam?: number;
   filtros: FiltrosPlacas;
 }): Promise<PlacasResponse> => {
-  await new Promise((resolve) => setTimeout(resolve, 800)); // Simular delay
+  const params = new URLSearchParams({
+    limit: "20",
+    ...(filtros.empresa && { empresa: filtros.empresa }),
+    ...(filtros.status && { status: filtros.status }),
+    ...(filtros.pesquisa && { pesquisa: filtros.pesquisa }),
+  });
 
-  const pageSize = 20;
-  const startIndex = parseInt(pageParam) * pageSize;
-
-  // Gerar dados mock de ambas as empresas
-  const generateAllPlacas = (): Placa[] => {
-    const todasPlacas: Placa[] = [];
-
-    // Gerar placas da LW SIM (antiga "One")
-    for (let i = 0; i < 156; i++) {
-      todasPlacas.push({
-        id: `lwsim_${i + 1}`,
-        numeroPlaca: `LWS${String(i + 1).padStart(4, "0")}`,
-        modelo: `Modelo LW SIM ${Math.floor(Math.random() * 10) + 1}`,
-        empresa: "lwsim" as const,
-        instalado: Math.random() > 0.3, // 70% instaladas
-        dataInstalacao:
-          Math.random() > 0.3
-            ? new Date(
-                Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000
-              ).toISOString()
-            : undefined,
-        dataUltimaAtualizacao: new Date().toISOString(),
-      });
-    }
-
-    // Gerar placas da Binsat
-    for (let i = 0; i < 89; i++) {
-      todasPlacas.push({
-        id: `binsat_${i + 1}`,
-        numeroPlaca: `BIN${String(i + 1).padStart(4, "0")}`,
-        modelo: `Modelo Binsat ${Math.floor(Math.random() * 10) + 1}`,
-        empresa: "binsat" as const,
-        instalado: Math.random() > 0.3, // 70% instaladas
-        dataInstalacao:
-          Math.random() > 0.3
-            ? new Date(
-                Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000
-              ).toISOString()
-            : undefined,
-        dataUltimaAtualizacao: new Date().toISOString(),
-      });
-    }
-
-    return todasPlacas;
-  };
-
-  let placasFiltradas = generateAllPlacas();
-
-  // Aplicar filtro de empresa
-  if (filtros.empresa && filtros.empresa !== "todos") {
-    placasFiltradas = placasFiltradas.filter(
-      (placa) => placa.empresa === filtros.empresa
-    );
+  // Adicionar page apenas se existir (não na primeira página)
+  if (pageParam !== undefined) {
+    params.append('page', pageParam.toString());
   }
 
-  // Aplicar filtro de status
-  if (filtros.status && filtros.status !== "todos") {
-    const statusBoolean = filtros.status === "instalado";
-    placasFiltradas = placasFiltradas.filter(
-      (placa) => placa.instalado === statusBoolean
-    );
+  const response = await fetch(`/api/placas?${params}`);
+  
+  if (!response.ok) {
+    throw new Error(`Erro ao carregar placas: ${response.status}`);
   }
 
-  // Aplicar filtro de pesquisa
-  if (filtros.pesquisa && filtros.pesquisa.trim() !== "") {
-    const termoPesquisa = filtros.pesquisa.toLowerCase();
-    placasFiltradas = placasFiltradas.filter(
-      (placa) =>
-        placa.numeroPlaca.toLowerCase().includes(termoPesquisa) ||
-        placa.modelo.toLowerCase().includes(termoPesquisa)
-    );
-  }
-
-  // Paginação
-  const totalItems = placasFiltradas.length;
-  const items = placasFiltradas.slice(startIndex, startIndex + pageSize);
-  const hasNextPage = startIndex + pageSize < totalItems;
-
-  if (Math.random() > 0.98) {
-    // 2% chance de erro para simulação
-    throw new Error("Erro ao carregar dados das placas");
+  const result = await response.json();
+  
+  if (!result.success) {
+    throw new Error(result.message || "Erro ao carregar placas");
   }
 
   return {
-    data: items,
-    nextCursor: hasNextPage ? String(parseInt(pageParam) + 1) : undefined,
-    hasNextPage,
-    totalCount: totalItems,
+    data: result.data,
+    nextCursor: result.nextPage,
+    hasNextPage: result.hasNextPage,
+    totalCount: result.totalCount,
   };
 };
 
@@ -124,26 +64,25 @@ const updatePlacaStatus = async ({
   id,
   instalado,
 }: UpdateStatusParams): Promise<Placa> => {
-  await new Promise((resolve) => setTimeout(resolve, 500)); // Simular delay
+  const response = await fetch('/api/placas', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ id, instalado }),
+  });
 
-  if (Math.random() > 0.9) {
-    // 10% chance de erro
-    throw new Error("Erro ao atualizar status da placa");
+  if (!response.ok) {
+    throw new Error(`Erro ao atualizar status: ${response.status}`);
   }
 
-  // Determinar empresa baseada no ID
-  const empresa = id.startsWith("lwsim") ? "lwsim" : "binsat";
+  const result = await response.json();
+  
+  if (!result.success) {
+    throw new Error(result.message || "Erro ao atualizar status da placa");
+  }
 
-  // Simular resposta da API
-  return {
-    id,
-    numeroPlaca: `MOCK${id.slice(-4)}`,
-    modelo: "Modelo Updated",
-    empresa,
-    instalado,
-    dataInstalacao: instalado ? new Date().toISOString() : undefined,
-    dataUltimaAtualizacao: new Date().toISOString(),
-  };
+  return result.data;
 };
 
 // Hook principal para placas com filtros
@@ -163,13 +102,12 @@ export const usePlacas = (filtros: FiltrosPlacas = {}) => {
   } = useInfiniteQuery({
     queryKey: ["placas", filtros],
     queryFn: ({ pageParam }) => fetchPlacas({ pageParam, filtros }),
-    initialPageParam: "0",
+    initialPageParam: 0, // Primeira página é 0
     getNextPageParam: (lastPage) => {
       return lastPage.hasNextPage ? lastPage.nextCursor : undefined;
     },
     staleTime: 5 * 60 * 1000, // 5 minutos
     retry: (failureCount) => {
-   
       return failureCount < 2;
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
@@ -199,7 +137,7 @@ export const usePlacas = (filtros: FiltrosPlacas = {}) => {
     },
   });
 
-  // Flatten dos dados paginados
+  // Flatten dos dados paginados (mantendo duplicatas)
   const placas = data?.pages.flatMap((page) => page.data) ?? [];
   const totalCount = data?.pages[0]?.totalCount ?? 0;
 
@@ -208,7 +146,7 @@ export const usePlacas = (filtros: FiltrosPlacas = {}) => {
     total: placas.length,
     instaladas: placas.filter((p) => p.instalado).length,
     pendentes: placas.filter((p) => !p.instalado).length,
-    totalGeral: totalCount,
+    totalGeral: totalCount, // Usar total real da API
   };
 
   // Função para toggle status
@@ -258,46 +196,70 @@ export const usePlacas = (filtros: FiltrosPlacas = {}) => {
   };
 };
 
+// Função para buscar todas as estatísticas sem paginação
+const fetchEstatisticasGerais = async () => {
+  const response = await fetch('/api/placas?limit=1000'); // Limite alto para pegar todos
+  
+  if (!response.ok) {
+    throw new Error(`Erro ao carregar estatísticas: ${response.status}`);
+  }
+
+  const result = await response.json();
+  
+  if (!result.success) {
+    throw new Error(result.message || "Erro ao carregar estatísticas");
+  }
+
+  return result.data;
+};
+
 // Hook separado para estatísticas gerais (SEMPRE dados totais, sem filtros)
 export const useEstatisticasGerais = () => {
-  const queryTotais = usePlacas({}); // Sempre sem filtros para estatísticas
+  const { data: dadosApi = [], isLoading, isError, refetch } = useQuery({
+    queryKey: ["estatisticas-gerais"],
+    queryFn: fetchEstatisticasGerais,
+    staleTime: 5 * 60 * 1000, // 5 minutos
+  });
+
+  // Manter todas as placas (incluindo duplicatas)
+  const placas = dadosApi;
 
   // Separar estatísticas por empresa (dados totais)
   const estatisticasLwsim = {
-    total: queryTotais.placas.filter((p) => p.empresa === "lwsim").length,
-    instaladas: queryTotais.placas.filter(
-      (p) => p.empresa === "lwsim" && p.instalado
+    total: placas.filter((p: Placa) => p.empresa === "lwsim").length,
+    instaladas: placas.filter(
+      (p: Placa) => p.empresa === "lwsim" && p.instalado
     ).length,
-    pendentes: queryTotais.placas.filter(
-      (p) => p.empresa === "lwsim" && !p.instalado
+    pendentes: placas.filter(
+      (p: Placa) => p.empresa === "lwsim" && !p.instalado
     ).length,
   };
 
   const estatisticasBinsat = {
-    total: queryTotais.placas.filter((p) => p.empresa === "binsat").length,
-    instaladas: queryTotais.placas.filter(
-      (p) => p.empresa === "binsat" && p.instalado
+    total: placas.filter((p: Placa) => p.empresa === "binsat").length,
+    instaladas: placas.filter(
+      (p: Placa) => p.empresa === "binsat" && p.instalado
     ).length,
-    pendentes: queryTotais.placas.filter(
-      (p) => p.empresa === "binsat" && !p.instalado
+    pendentes: placas.filter(
+      (p: Placa) => p.empresa === "binsat" && !p.instalado
     ).length,
   };
 
   return {
     // Estatísticas gerais (SEMPRE TOTAIS)
-    totalVeiculos: queryTotais.placas.length,
-    totalInstalados: queryTotais.placas.filter((p) => p.instalado).length,
-    totalPendentes: queryTotais.placas.filter((p) => !p.instalado).length,
+    totalVeiculos: placas.length,
+    totalInstalados: placas.filter((p: Placa) => p.instalado).length,
+    totalPendentes: placas.filter((p: Placa) => !p.instalado).length,
 
     // Estatísticas por empresa (SEMPRE TOTAIS)
     estatisticasLwsim,
     estatisticasBinsat,
 
     // Estados de loading
-    isLoading: queryTotais.isLoading,
-    isError: queryTotais.isError,
+    isLoading,
+    isError,
 
     // Ações
-    refetchAll: queryTotais.refetch,
+    refetchAll: refetch,
   };
 };
