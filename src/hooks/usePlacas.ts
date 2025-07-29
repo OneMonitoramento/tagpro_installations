@@ -16,7 +16,7 @@ import {
 
 interface FiltrosPlacas {
   empresa?: "lwsim" | "binsat" | "todos";
-  status?: "instalado" | "pendente" | "todos";
+  status?: "installed" | "pending" | "inactive" | "todos";
   pesquisa?: string;
 }
 
@@ -101,10 +101,10 @@ export const usePlacas = (filtros: FiltrosPlacas = {}) => {
     refetch,
   } = useInfiniteQuery({
     queryKey: ["placas", filtros],
-    queryFn: ({ pageParam }) => fetchPlacas({ pageParam, filtros }),
-    initialPageParam: 0, // Primeira página é 0
+    queryFn: ({ pageParam = "0" }) => fetchPlacas({ pageParam: parseInt(pageParam), filtros }),
+    initialPageParam: "0", // Primeira página é "0"
     getNextPageParam: (lastPage) => {
-      return lastPage.hasNextPage ? lastPage.nextCursor : undefined;
+      return lastPage.hasNextPage ? lastPage.nextCursor?.toString() : undefined;
     },
     staleTime: 5 * 60 * 1000, // 5 minutos
     retry: (failureCount) => {
@@ -144,8 +144,9 @@ export const usePlacas = (filtros: FiltrosPlacas = {}) => {
   // Estatísticas calculadas
   const estatisticas: Estatisticas = {
     total: placas.length,
-    instaladas: placas.filter((p) => p.instalado).length,
-    pendentes: placas.filter((p) => !p.instalado).length,
+    instaladas: placas.filter((p) => p.status === 'installed').length,
+    pendentes: placas.filter((p) => p.status === 'pending').length,
+    inativas: placas.filter((p) => p.status === 'inactive').length,
     totalGeral: totalCount, // Usar total real da API
   };
 
@@ -228,28 +229,35 @@ export const useEstatisticasGerais = () => {
   const estatisticasLwsim = {
     total: placas.filter((p: Placa) => p.empresa === "lwsim").length,
     instaladas: placas.filter(
-      (p: Placa) => p.empresa === "lwsim" && p.instalado
+      (p: Placa) => p.empresa === "lwsim" && p.status === "installed"
     ).length,
     pendentes: placas.filter(
-      (p: Placa) => p.empresa === "lwsim" && !p.instalado
+      (p: Placa) => p.empresa === "lwsim" && p.status === "pending"
+    ).length,
+    inativas: placas.filter(
+      (p: Placa) => p.empresa === "lwsim" && p.status === "inactive"
     ).length,
   };
 
   const estatisticasBinsat = {
     total: placas.filter((p: Placa) => p.empresa === "binsat").length,
     instaladas: placas.filter(
-      (p: Placa) => p.empresa === "binsat" && p.instalado
+      (p: Placa) => p.empresa === "binsat" && p.status === "installed"
     ).length,
     pendentes: placas.filter(
-      (p: Placa) => p.empresa === "binsat" && !p.instalado
+      (p: Placa) => p.empresa === "binsat" && p.status === "pending"
+    ).length,
+    inativas: placas.filter(
+      (p: Placa) => p.empresa === "binsat" && p.status === "inactive"
     ).length,
   };
 
   return {
     // Estatísticas gerais (SEMPRE TOTAIS)
     totalVeiculos: placas.length,
-    totalInstalados: placas.filter((p: Placa) => p.instalado).length,
-    totalPendentes: placas.filter((p: Placa) => !p.instalado).length,
+    totalInstalados: placas.filter((p: Placa) => p.status === "installed").length,
+    totalPendentes: placas.filter((p: Placa) => p.status === "pending").length,
+    totalInativos: placas.filter((p: Placa) => p.status === "inactive").length,
 
     // Estatísticas por empresa (SEMPRE TOTAIS)
     estatisticasLwsim,
