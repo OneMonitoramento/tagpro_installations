@@ -14,31 +14,42 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Dados mock de usuários para demonstração
-const mockUsers = [
-  { id: '1', username: 'admin', password: 'admin123', name: 'Administrador', email: 'admin@empresa.com', role: 'admin' },
-  { id: '2', username: 'user', password: 'user123', name: 'Usuário Padrão', email: 'user@empresa.com', role: 'user' },
-  { id: '3', username: 'lwsim', password: 'lwsim123', name: 'LW SIM', email: 'lwsim@empresa.com', role: 'lwsim' },
-  { id: '4', username: 'tagpro', password: 'tagpro123', name: 'TagPro User', email: 'tagpro@empresa.com', role: 'tagpro' },
-  { id: '5', username: 'binsat', password: 'binsat123', name: 'Binsat User', email: 'binsat@empresa.com', role: 'binsat' },
-];
+// Constantes
+const TOKEN_KEY = 'auth_token';
+const USER_KEY = 'auth_user';
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Verificar se há usuário salvo no localStorage ao inicializar
+  // Verificar se há token válido ao inicializar
   useEffect(() => {
-    const checkAuth = () => {
+    const checkAuth = async () => {
       try {
-        const savedUser = localStorage.getItem('auth_user');
-        if (savedUser) {
-          const parsedUser = JSON.parse(savedUser);
-          setUser(parsedUser);
+        const token = localStorage.getItem(TOKEN_KEY);
+        const savedUser = localStorage.getItem(USER_KEY);
+        
+        if (token && savedUser) {
+          // Verificar se o token ainda é válido
+          const response = await fetch('/api/auth/me', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            setUser(data.user);
+          } else {
+            // Token inválido, limpar dados
+            localStorage.removeItem(TOKEN_KEY);
+            localStorage.removeItem(USER_KEY);
+          }
         }
       } catch (error) {
         console.error('Erro ao verificar autenticação:', error);
-        localStorage.removeItem('auth_user');
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
       } finally {
         setIsLoading(false);
       }
@@ -51,24 +62,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setIsLoading(true);
       
-      // Simular delay de autenticação
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Verificar credenciais
-      const foundUser = mockUsers.find(
-        u => u.username === credentials.username && u.password === credentials.password
-      );
+      // Fazer chamada para API de login
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(credentials),
+      });
 
-      if (!foundUser) {
-        throw new Error('Credenciais inválidas');
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Erro ao fazer login');
       }
 
-      // Criar objeto de usuário (sem senha)
-      const { password, username, ...userWithoutPassword } = foundUser;
-      const authenticatedUser: User = userWithoutPassword;
-
-      setUser(authenticatedUser);
-      localStorage.setItem('auth_user', JSON.stringify(authenticatedUser));
+      // Salvar token e dados do usuário
+      localStorage.setItem(TOKEN_KEY, data.token);
+      localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+      setUser(data.user);
+      
     } catch (error) {
       console.error('Erro no login:', error);
       throw error;
@@ -77,9 +90,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('auth_user');
+  const logout = async () => {
+    try {
+      // Chamar API de logout (opcional)
+      const token = localStorage.getItem(TOKEN_KEY);
+      if (token) {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Erro no logout:', error);
+    } finally {
+      // Limpar dados locais
+      setUser(null);
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+    }
   };
 
   const value: AuthContextType = {

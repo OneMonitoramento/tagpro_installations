@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Eye, EyeOff, LogIn, User, Lock, Info } from 'lucide-react';
+import { Eye, EyeOff, User, Lock, Shield } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 const LoginForm = () => {
@@ -14,13 +14,6 @@ const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
-  const demoCredentials = [
-    { username: 'admin', password: 'admin123', role: 'Admin', description: 'Acesso total ao sistema' },
-    { username: 'lwsim', password: 'lwsim123', role: 'LW SIM', description: 'Usuário LW SIM' },
-    { username: 'tagpro', password: 'tagpro123', role: 'TagPro', description: 'Usuário TagPro' },
-    { username: 'binsat', password: 'binsat123', role: 'Binsat', description: 'Usuário Binsat' },
-    { username: 'user', password: 'user123', role: 'Usuário', description: 'Usuário padrão' },
-  ];
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -47,17 +40,13 @@ const LoginForm = () => {
     }
   };
 
-  const handleDemoLogin = (credentials: { username: string; password: string }) => {
-    setFormData(credentials);
-    setError('');
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
           <div className="mx-auto h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center">
-            <LogIn className="h-6 w-6 text-white" />
+            <Shield className="h-6 w-6 text-white" />
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
             Dashboard de Placas
@@ -162,44 +151,6 @@ const LoginForm = () => {
               </button>
             </div>
           </form>
-
-          {/* Credenciais de demonstração */}
-          <div className="mt-8">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500 flex items-center gap-1">
-                  <Info className="h-4 w-4" />
-                  Credenciais de demonstração
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-6 grid grid-cols-1 gap-3">
-              {demoCredentials.map((cred, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={() => handleDemoLogin(cred)}
-                  className="w-full bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md p-3 text-left transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {cred.username} / {cred.password}
-                      </div>
-                      <div className="text-xs text-gray-600">
-                        {cred.role} - {cred.description}
-                      </div>
-                    </div>
-                    <LogIn className="h-4 w-4 text-gray-400" />
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </div>

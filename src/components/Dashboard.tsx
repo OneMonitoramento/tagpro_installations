@@ -131,13 +131,7 @@ const EstatisticasCard = ({
 };
 
 const Dashboard = () => {
-  const logout = () =>{}
-  const user = {
-    email: "admin@empresa.com",
-    id: "1",
-    name: "Administrador",
-    role: "admin",
-  };
+  const { user, logout } = useAuth();
   console.log("Rendering Dashboard", user);
   // Estado dos filtros
   const [filtros, setFiltros] = useState<FiltrosPlacas>({

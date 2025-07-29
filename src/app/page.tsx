@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import Dashboard from '@/components/Dashboard';
 import LoginForm from '@/components/LoginForm';
 import Loading from '@/components/Loading';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 // Configuração do React Query
 const queryClient = new QueryClient({
@@ -36,7 +37,13 @@ const AppContent = () => {
     );
   }
 
-  return isAuthenticated ? <Dashboard /> : <LoginForm />;
+  return isAuthenticated ? (
+    <ProtectedRoute>
+      <Dashboard />
+    </ProtectedRoute>
+  ) : (
+    <LoginForm />
+  );
 };
 
 // Componente raiz com todos os providers

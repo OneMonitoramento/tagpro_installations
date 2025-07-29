@@ -30,9 +30,15 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Para rotas de páginas (não API), verificar autenticação apenas no cliente
-  // O middleware não deve bloquear rotas de página, deixamos isso para o ProtectedRoute
+  // Para rotas de páginas (não API), fazer redirecionamento simples baseado em localStorage
+  // Verificar se há token no localStorage via cookie/header (melhor seria SSR, mas para simplicidade...)
   const response = NextResponse.next();
+  
+  // Se é rota de página principal e não tem token, redirecionar para login
+  if (pathname === '/') {
+    // O redirecionamento real será feito pelo cliente via AuthContext
+    // Middleware apenas adiciona headers de segurança
+  }
 
   // Cache headers para assets estáticos
   if (pathname.startsWith('/_next/static/')) {
