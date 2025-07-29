@@ -89,3 +89,17 @@ npm run db:studio
 - Database schema includes tables for clients, vehicles, and state management
 - Vehicle data is mapped from database fields (`plate` → `numeroPlaca`, `model` → `modelo`, etc.)
 - Database migrations are managed with `drizzle-kit` commands
+
+## Git Commit Guidelines
+
+When creating git commits, follow these guidelines:
+
+- **Do NOT include Claude Code attribution links** in commit messages
+- **Do NOT add** `🤖 Generated with [Claude Code](https://claude.ai/code)` or similar references
+- **Do NOT add** `Co-Authored-By: Claude <noreply@anthropic.com>` signatures
+- Keep commit messages clean and focused on the actual changes
+- Use conventional commit format: `type(scope): description`
+- Examples of good commit messages:
+  - `feat: add Excel export functionality for vehicle data`
+  - `fix: correct status values to match database schema`
+  - `docs: update README with new API endpoints`
