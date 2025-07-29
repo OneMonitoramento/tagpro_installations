@@ -54,23 +54,30 @@ const PlacaCard = ({
           </span>
         </div>
         
-        {/* Botão de Status */}
-        <button
-          onClick={() => onToggleStatus(placa.id)}
-          className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-            placa.instalado 
-              ? 'bg-green-100 text-green-700 hover:bg-green-200' 
-              : 'bg-red-100 text-red-700 hover:bg-red-200'
+        {/* Badge de Status */}
+        <div
+          className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${
+            placa.status === 'installed'
+              ? 'bg-green-100 text-green-700'
+              : placa.status === 'pending'
+              ? 'bg-yellow-100 text-yellow-700'
+              : 'bg-gray-100 text-gray-700'
           }`}
-          title={`Clique para ${placa.instalado ? 'marcar como pendente' : 'marcar como instalado'}`}
         >
-          {placa.instalado ? (
+          {placa.status === 'installed' ? (
             <CheckCircle className="h-4 w-4" />
+          ) : placa.status === 'pending' ? (
+            <XCircle className="h-4 w-4" />
           ) : (
             <XCircle className="h-4 w-4" />
           )}
-          {placa.instalado ? 'Instalado' : 'Pendente'}
-        </button>
+          {placa.status === 'installed' 
+            ? 'Instalado' 
+            : placa.status === 'pending'
+            ? 'Pendente'
+            : 'Inativo'
+          }
+        </div>
       </div>
       
       <div className="text-sm text-gray-600 space-y-1">
@@ -81,7 +88,7 @@ const PlacaCard = ({
         {placa.renavam && (
           <p>RENAVAM: <span className="font-mono text-xs">{placa.renavam}</span></p>
         )}
-        {placa.instalado && placa.dataInstalacao && (
+        {placa.status === 'installed' && placa.dataInstalacao && (
           <p>Instalado em: {new Date(placa.dataInstalacao).toLocaleDateString('pt-BR')}</p>
         )}
       </div>

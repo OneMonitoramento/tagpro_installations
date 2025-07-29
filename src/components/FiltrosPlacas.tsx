@@ -40,7 +40,7 @@ const FiltrosPlacasComponent: React.FC<FiltrosPlacasProps> = ({
     });
   };
 
-  const handleStatusChange = (status: 'instalado' | 'pendente' | 'todos') => {
+  const handleStatusChange = (status: 'installed' | 'pending' | 'inactive' | 'todos') => {
     onFiltrosChange({
       ...filtros,
       status,
@@ -148,8 +148,9 @@ const FiltrosPlacasComponent: React.FC<FiltrosPlacasProps> = ({
               <div className="space-y-2">
                 {[
                   { value: 'todos', label: 'Todos os status' },
-                  { value: 'instalado', label: 'Instalado' },
-                  { value: 'pendente', label: 'Pendente' },
+                  { value: 'installed', label: 'Instalado' },
+                  { value: 'pending', label: 'Pendente' },
+                  { value: 'inactive', label: 'Inativo' },
                 ].map((opcao) => (
                   <label key={opcao.value} className="flex items-center">
                     <input
