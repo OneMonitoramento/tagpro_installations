@@ -10,8 +10,10 @@ import {
   BarChart3,
   LogOut,
   User,
+  Download,
 } from "lucide-react";
-import { usePlacas, useEstatisticasGerais } from "@/hooks/usePlacas";
+import { usePlacas } from "@/hooks/usePlacas";
+import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useAuth } from "@/contexts/AuthContext";
 import { FiltrosPlacas, Estatisticas } from "@/types";
 import InfiniteScrollList from "./InfiniteScrollList";
@@ -24,23 +26,60 @@ const EstatisticasCard = ({
   titulo,
   stats,
   cor,
+  empresa,
 }: {
   titulo: string;
   stats: Estatisticas;
   cor: string;
+  empresa: 'lwsim' | 'binsat';
 }) => {
   console.log(`Rendering EstatisticasCard for ${titulo}`, stats);
+
+  const handleExportExcel = async () => {
+    try {
+      const response = await fetch(`/api/export?empresa=${empresa}`);
+      
+      if (!response.ok) {
+        throw new Error('Erro ao exportar dados');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `veiculos_${empresa}_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Erro ao exportar:', error);
+      alert('Erro ao exportar dados para Excel');
+    }
+  };
+
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-      <div className="flex items-center gap-2 mb-4">
-        <BarChart3 className={`h-6 w-6 ${cor}`} />
-        <h3 className="text-lg font-semibold text-gray-900">{titulo}</h3>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <BarChart3 className={`h-6 w-6 ${cor}`} />
+          <h3 className="text-lg font-semibold text-gray-900">{titulo}</h3>
+        </div>
+        <button
+          onClick={handleExportExcel}
+          className="flex items-center gap-2 px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          title={`Exportar dados da ${titulo} para Excel`}
+        >
+          <Download className="h-4 w-4" />
+          Excel
+        </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-4 gap-4">
         <div className="text-center">
           <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-          <div className="text-sm text-gray-600">Carregados</div>
+          <div className="text-sm text-gray-600">Total</div>
         </div>
         <div className="text-center">
           <div className="text-2xl font-bold text-green-600">
@@ -49,10 +88,16 @@ const EstatisticasCard = ({
           <div className="text-sm text-gray-600">Instaladas</div>
         </div>
         <div className="text-center">
-          <div className="text-2xl font-bold text-red-600">
+          <div className="text-2xl font-bold text-yellow-600">
             {stats.pendentes}
           </div>
           <div className="text-sm text-gray-600">Pendentes</div>
+        </div>
+        <div className="text-center">
+          <div className="text-2xl font-bold text-gray-600">
+            {stats.inativas}
+          </div>
+          <div className="text-sm text-gray-600">Inativas</div>
         </div>
       </div>
 
@@ -102,17 +147,13 @@ const Dashboard = () => {
   });
 
   // Queries separadas:
-  // - estatisticasGerais: SEMPRE dados totais (sem filtros) para os cards do dashboard
+  // - dashboardStats: estatísticas gerais e informações de sincronização (incluindo dados por empresa)
   // - queryPlacasLista: dados filtrados apenas para a lista de placas
-  const estatisticasGerais = useEstatisticasGerais(); // SEMPRE dados totais
+  const dashboardStats = useDashboardStats();
   const queryPlacasLista = usePlacas(filtros); // Apenas para a lista com filtros
 
-
-  console.log("estatisticasGerais", estatisticasGerais);
+  console.log("dashboardStats", dashboardStats);
   console.log("queryPlacasLista", queryPlacasLista);
-  
-console.log("Estatísticas Gerais", estatisticasGerais);
-  console.log("Lista de Placas", queryPlacasLista);
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -142,15 +183,15 @@ console.log("Estatísticas Gerais", estatisticasGerais);
               {/* Refresh Button */}
               <button
                 onClick={() => {
-                  estatisticasGerais.refetchAll();
+                  dashboardStats.refetch();
                   queryPlacasLista.refetch();
                 }}
-                disabled={estatisticasGerais.isLoading}
+                disabled={dashboardStats.isLoading}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <RefreshCw
                   className={`h-4 w-4 ${
-                    estatisticasGerais.isLoading ? "animate-spin" : ""
+                    dashboardStats.isLoading ? "animate-spin" : ""
                   }`}
                 />
                 Atualizar
@@ -170,35 +211,35 @@ console.log("Estatísticas Gerais", estatisticasGerais);
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Informações Gerais - SEMPRE DADOS TOTAIS (não afetadas pelos filtros) */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {/* Última Sincronização */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <RefreshCw className="h-5 w-5 text-green-600" />
-              </div>
-              <div>
-                <div className="text-sm text-gray-600">
-                  Última Sincronização
-                </div>
-                <div className="font-semibold text-gray-900">
-                  {new Date().toLocaleString("pt-BR")}
-                </div>
-              </div>
-            </div>
-
+        {/* Seção de Totalização */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart3 className="h-6 w-6 text-blue-600" />
+            <h3 className="text-lg font-semibold text-gray-900">Totalização Geral</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
             {/* Total de Veículos */}
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                 <Car className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <div className="text-sm text-gray-600">
-                  Veículos Encontrados
-                </div>
+                <div className="text-sm text-gray-600">Total de Veículos</div>
                 <div className="font-semibold text-gray-900">
-                  {estatisticasGerais.totalVeiculos} veículos
+                  {dashboardStats.stats?.totalization.totalVehicles || 0} veículos
+                </div>
+              </div>
+            </div>
+
+            {/* Total de Clientes */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                <User className="h-5 w-5 text-purple-600" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">Total de Clientes</div>
+                <div className="font-semibold text-gray-900">
+                  {dashboardStats.stats?.totalization.totalClients || 0} clientes
                 </div>
               </div>
             </div>
@@ -211,20 +252,33 @@ console.log("Estatísticas Gerais", estatisticasGerais);
               <div>
                 <div className="text-sm text-gray-600">Total Instalados</div>
                 <div className="font-semibold text-gray-900">
-                  {estatisticasGerais.totalInstalados} placas
+                  {dashboardStats.stats?.totalization.totalInstalled || 0} placas
                 </div>
               </div>
             </div>
 
             {/* Total Pendentes */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                <XCircle className="h-5 w-5 text-red-600" />
+              <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <XCircle className="h-5 w-5 text-yellow-600" />
               </div>
               <div>
                 <div className="text-sm text-gray-600">Total Pendentes</div>
                 <div className="font-semibold text-gray-900">
-                  {estatisticasGerais.totalPendentes} placas
+                  {dashboardStats.stats?.totalization.totalPending || 0} placas
+                </div>
+              </div>
+            </div>
+
+            {/* Total Inativos */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                <XCircle className="h-5 w-5 text-gray-600" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">Total Inativos</div>
+                <div className="font-semibold text-gray-900">
+                  {dashboardStats.stats?.totalization.totalInactive || 0} placas
                 </div>
               </div>
             </div>
@@ -237,10 +291,10 @@ console.log("Estatísticas Gerais", estatisticasGerais);
                 Progresso Geral
               </span>
               <span className="text-sm text-gray-600">
-                {estatisticasGerais.totalVeiculos > 0
+                {dashboardStats.stats?.totalization.totalVehicles && dashboardStats.stats.totalization.totalVehicles > 0
                   ? Math.round(
-                      (estatisticasGerais.totalInstalados /
-                        estatisticasGerais.totalVeiculos) *
+                      (dashboardStats.stats.totalization.totalInstalled /
+                        dashboardStats.stats.totalization.totalVehicles) *
                         100
                     )
                   : 0}
@@ -252,9 +306,9 @@ console.log("Estatísticas Gerais", estatisticasGerais);
                 className="bg-gradient-to-r from-green-500 to-green-600 h-3 rounded-full transition-all duration-500"
                 style={{
                   width: `${
-                    estatisticasGerais.totalVeiculos > 0
-                      ? (estatisticasGerais.totalInstalados /
-                          estatisticasGerais.totalVeiculos) *
+                    dashboardStats.stats?.totalization.totalVehicles && dashboardStats.stats.totalization.totalVehicles > 0
+                      ? (dashboardStats.stats.totalization.totalInstalled /
+                          dashboardStats.stats.totalization.totalVehicles) *
                         100
                       : 0
                   }%`,
@@ -264,7 +318,81 @@ console.log("Estatísticas Gerais", estatisticasGerais);
           </div>
         </div>
 
+        {/* Seção de Sincronização */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <RefreshCw className="h-6 w-6 text-green-600" />
+            <h3 className="text-lg font-semibold text-gray-900">Informações de Sincronização</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {/* Última Sincronização */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <RefreshCw className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">
+                  Última Sincronização
+                </div>
+                <div className="font-semibold text-gray-900">
+                  {dashboardStats.stats?.syncInfo.lastSyncDate 
+                    ? new Date(dashboardStats.stats.syncInfo.lastSyncDate).toLocaleString("pt-BR")
+                    : "Não disponível"
+                  }
+                </div>
+              </div>
+            </div>
+
+            {/* Novos Veículos */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Car className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">Novos Veículos</div>
+                <div className="font-semibold text-gray-900">
+                  {dashboardStats.stats?.syncInfo.newVehicles || 0} sincronizados
+                </div>
+              </div>
+            </div>
+
+            {/* Veículos Alterados */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <Car className="h-5 w-5 text-yellow-600" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">Veículos Alterados</div>
+                <div className="font-semibold text-gray-900">
+                  {dashboardStats.stats?.syncInfo.updatedVehicles || 0} sincronizados
+                </div>
+              </div>
+            </div>
+
+            {/* Clientes Alterados */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                <User className="h-5 w-5 text-orange-600" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">Clientes Alterados</div>
+                <div className="font-semibold text-gray-900">
+                  {dashboardStats.stats?.syncInfo.updatedClients || 0} sincronizados
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Mensagens de Erro */}
+        {dashboardStats.isError && (
+          <ErrorMessage
+            message={
+              dashboardStats.error || "Erro ao carregar estatísticas do dashboard"
+            }
+            onRetry={() => dashboardStats.refetch()}
+          />
+        )}
         {queryPlacasLista.isError && (
           <ErrorMessage
             message={
@@ -278,13 +406,25 @@ console.log("Estatísticas Gerais", estatisticasGerais);
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <EstatisticasCard
             titulo="LW SIM"
-            stats={estatisticasGerais.estatisticasLwsim}
+            stats={{
+              total: dashboardStats.stats?.companies.lwsim.total || 0,
+              instaladas: dashboardStats.stats?.companies.lwsim.installed || 0,
+              pendentes: dashboardStats.stats?.companies.lwsim.pending || 0,
+              inativas: dashboardStats.stats?.companies.lwsim.inactive || 0
+            }}
             cor="text-blue-600"
+            empresa="lwsim"
           />
           <EstatisticasCard
             titulo="Binsat"
-            stats={estatisticasGerais.estatisticasBinsat}
+            stats={{
+              total: dashboardStats.stats?.companies.binsat.total || 0,
+              instaladas: dashboardStats.stats?.companies.binsat.installed || 0,
+              pendentes: dashboardStats.stats?.companies.binsat.pending || 0,
+              inativas: dashboardStats.stats?.companies.binsat.inactive || 0
+            }}
             cor="text-purple-600"
+            empresa="binsat"
           />
         </div>
 
