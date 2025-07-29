@@ -13,7 +13,8 @@ export interface Placa {
   numeroPlaca: string;
   modelo: string;
   empresa: 'lwsim' | 'binsat';
-  instalado: boolean;
+  status: 'pending' | 'installed' | 'inactive';
+  instalado: boolean; // deprecated, mantido para compatibilidade
   dataInstalacao?: string;
   dataUltimaAtualizacao: string;
   vin?: string;
@@ -24,13 +25,72 @@ export interface Estatisticas {
   total: number;
   instaladas: number;
   pendentes: number;
+  inativas: number;
   totalGeral?: number;
+}
+
+export interface SyncOperation {
+  date: string;
+  status: string;
+  details: {
+    operation: string;
+    failureCount: number;
+    successCount: number;
+  };
+  totalProcessed: number;
+  vehiclesSynchronized?: number;
+  clientsSynchronized?: number;
+}
+
+export interface SyncState {
+  newVehicles: {
+    currentSync: SyncOperation;
+    lastSuccessfulSync: SyncOperation;
+  };
+  updatedClients: {
+    currentSync: SyncOperation;
+    lastSuccessfulSync: SyncOperation;
+  };
+  updatedVehicles: {
+    currentSync: SyncOperation;
+    lastSuccessfulSync: SyncOperation;
+  };
+}
+
+export interface DashboardStats {
+  totalization: {
+    totalVehicles: number;
+    totalClients: number;
+    totalInstalled: number;
+    totalPending: number;
+    totalInactive: number;
+  };
+  companies: {
+    lwsim: {
+      total: number;
+      installed: number;
+      pending: number;
+      inactive: number;
+    };
+    binsat: {
+      total: number;
+      installed: number;
+      pending: number;
+      inactive: number;
+    };
+  };
+  syncInfo: {
+    lastSyncDate: string;
+    newVehicles: number;
+    updatedVehicles: number;
+    updatedClients: number;
+  };
 }
 
 // Tipos para filtros
 export interface FiltrosPlacas {
   empresa?: 'lwsim' | 'binsat' | 'todos';
-  status?: 'instalado' | 'pendente' | 'todos';
+  status?: 'installed' | 'pending' | 'inactive' | 'todos';
   pesquisa?: string;
 }
 
