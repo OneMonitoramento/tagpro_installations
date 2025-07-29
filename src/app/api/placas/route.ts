@@ -7,13 +7,24 @@ import { and, eq, like, or, count, desc, lt } from 'drizzle-orm';
 
 // Função para mapear dados do banco para o formato Placa
 const mapVehicleToPlaca = (vehicle: any): Placa => {
+  // Mapear status do banco para o formato esperado
+  let status: 'pending' | 'installed' | 'inactive' = 'pending';
+  if (vehicle.status === 'installed') {
+    status = 'installed';
+  } else if (vehicle.status === 'pending') {
+    status = 'pending';
+  } else if (vehicle.status === 'inactive') {
+    status = 'inactive';
+  }
+
   return {
     id: vehicle.id.toString(),
     numeroPlaca: vehicle.plate,
     modelo: vehicle.model || 'Modelo não informado',
     empresa: vehicle.company === 'lw_sim' ? 'lwsim' : 'binsat',
-    instalado: vehicle.status === 'instalado',
-    dataInstalacao: vehicle.status === 'instalado' ? vehicle.updatedAt?.toISOString().split('T')[0] : undefined,
+    status,
+    instalado: status === 'installed', // mantido para compatibilidade
+    dataInstalacao: status === 'installed' ? vehicle.updatedAt?.toISOString().split('T')[0] : undefined,
     dataUltimaAtualizacao: vehicle.updatedAt?.toISOString() || new Date().toISOString(),
     vin: vehicle.vin || undefined,
     renavam: vehicle.renavam || undefined,
@@ -26,7 +37,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '0');
     const limit = parseInt(searchParams.get('limit') || '20');
     const empresa = searchParams.get('empresa') as 'lwsim' | 'binsat' | 'todos' | null;
-    const status = searchParams.get('status') as 'instalado' | 'pendente' | 'todos' | null;
+    const status = searchParams.get('status') as 'installed' | 'pending' | 'inactive' | 'todos' | null;
     const pesquisa = searchParams.get('pesquisa') || '';
     
 
@@ -42,7 +53,14 @@ export async function GET(request: NextRequest) {
 
     // Filtro de status
     if (status && status !== 'todos') {
-      const statusValue = status === 'instalado' ? 'instalado' : 'pendente';
+      let statusValue = 'pending';
+      if (status === 'installed') {
+        statusValue = 'installed';
+      } else if (status === 'pending') {
+        statusValue = 'pending';
+      } else if (status === 'inactive') {
+        statusValue = 'inactive';
+      }
       conditions.push(eq(sgaHinovaVehicle.status, statusValue));
     }
 
@@ -77,6 +95,8 @@ export async function GET(request: NextRequest) {
       .orderBy(desc(sgaHinovaVehicle.sgaCreatedAt), desc(sgaHinovaVehicle.id)) // Ordenar por sgaCreatedAt e ID decrescente
       .limit(limit + 1) // +1 para verificar se há próxima página
       .offset(offset);
+
+      console.log('🚗 Veículos encontrados ultima pos', vehicles[vehicles.length -1]);
 
     // Verificar se há próxima página
     const hasNextPage = vehicles.length > limit;
@@ -126,9 +146,9 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const { id, instalado } = await request.json();
+    const { id, status: newStatus, instalado } = await request.json();
 
-    console.log('🔄 Atualizando status:', { id, instalado });
+    console.log('🔄 Atualizando status:', { id, newStatus, instalado });
 
     const vehicleId = parseInt(id);
     if (isNaN(vehicleId)) {
@@ -142,11 +162,27 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    // Determinar o status para o banco de dados
+    let dbStatus = 'pending';
+    if (newStatus) {
+      // Usar novo formato de status
+      if (newStatus === 'installed') {
+        dbStatus = 'installed';
+      } else if (newStatus === 'pending') {
+        dbStatus = 'pending';
+      } else if (newStatus === 'inactive') {
+        dbStatus = 'inactive';
+      }
+    } else if (instalado !== undefined) {
+      // Compatibilidade com formato antigo
+      dbStatus = instalado ? 'installed' : 'pending';
+    }
+
     // Atualizar no banco de dados
     await db
       .update(sgaHinovaVehicle)
       .set({
-        status: instalado ? 'instalado' : 'pendente',
+        status: dbStatus,
         updatedAt: new Date()
       })
       .where(eq(sgaHinovaVehicle.id, vehicleId));
