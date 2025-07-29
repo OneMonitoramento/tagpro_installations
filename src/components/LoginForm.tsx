@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Eye, EyeOff, User, Lock, Shield } from 'lucide-react';
+import { Eye, EyeOff, User, Lock, GitMerge } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 const LoginForm = () => {
@@ -46,13 +46,13 @@ const LoginForm = () => {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
           <div className="mx-auto h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center">
-            <Shield className="h-6 w-6 text-white" />
+            <GitMerge className="h-6 w-6 text-white" />
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            Dashboard de Placas
+            LW SIM Integração
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Faça login para acessar o sistema
+            Sistema de integração entre plataformas
           </p>
         </div>
       </div>
