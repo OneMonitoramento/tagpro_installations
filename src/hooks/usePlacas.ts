@@ -1,6 +1,7 @@
 // Path: ./src/hooks/usePlacas.ts
 "use client";
 
+import { useMemo } from "react";
 import {
   useInfiniteQuery,
   useQuery,
@@ -141,14 +142,14 @@ export const usePlacas = (filtros: FiltrosPlacas = {}) => {
   const placas = data?.pages.flatMap((page) => page.data) ?? [];
   const totalCount = data?.pages[0]?.totalCount ?? 0;
 
-  // Estatísticas calculadas
-  const estatisticas: Estatisticas = {
+  // Estatísticas calculadas com useMemo para evitar recálculos desnecessários
+  const estatisticas: Estatisticas = useMemo(() => ({
     total: placas.length,
     instaladas: placas.filter((p) => p.status === 'installed').length,
     pendentes: placas.filter((p) => p.status === 'pending').length,
     inativas: placas.filter((p) => p.status === 'inactive').length,
     totalGeral: totalCount, // Usar total real da API
-  };
+  }), [placas, totalCount]);
 
   // Função para toggle status
   const toggleStatus = (id: string) => {

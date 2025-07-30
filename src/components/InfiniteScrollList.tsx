@@ -41,17 +41,18 @@ const PlacaCard = ({
   placa: Placa; 
   onToggleStatus: (id: string) => void;
 }) => {
-  const empresaConfig = getEmpresaConfig(placa.empresa);
-
+  const empresaConfig = placa.empresa ? getEmpresaConfig(placa.empresa) : null;
   return (
     <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <Car className="h-5 w-5 text-gray-600" />
           <span className="font-semibold text-gray-900">{placa.numeroPlaca}</span>
-          <span className={`text-xs px-2 py-1 rounded-full ${empresaConfig.bgColor} ${empresaConfig.textColor}`}>
-            {empresaConfig.name}
-          </span>
+          {placa.empresa && empresaConfig && (
+            <span className={`text-xs px-2 py-1 rounded-full ${empresaConfig.bgColor} ${empresaConfig.textColor}`}>
+              {empresaConfig.name}
+            </span>
+          )}
         </div>
         
         {/* Badge de Status */}
@@ -112,7 +113,7 @@ const InfiniteScrollList: React.FC<InfiniteScrollListProps> = ({
     if (observerRef.current) observerRef.current.disconnect();
     
     observerRef.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasNextPage) {
+      if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
         fetchNextPage();
       }
     });
