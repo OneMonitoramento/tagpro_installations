@@ -31,7 +31,7 @@ const FiltrosPlacasComponent: React.FC<FiltrosPlacasProps> = ({
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [filtros, onFiltrosChange, pesquisaLocal]);
+  }, [pesquisaLocal]); // Removido 'filtros' e 'onFiltrosChange' das dependências
 
   const handleEmpresaChange = (empresa: 'lwsim' | 'binsat' | 'todos') => {
     onFiltrosChange({
