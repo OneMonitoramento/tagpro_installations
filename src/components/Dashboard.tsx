@@ -33,8 +33,6 @@ const EstatisticasCard = ({
   cor: string;
   empresa: 'lwsim' | 'binsat';
 }) => {
-  console.log(`Rendering EstatisticasCard for ${titulo}`, stats);
-
   const handleExportExcel = async () => {
     try {
       const response = await fetch(`/api/export?empresa=${empresa}`);
@@ -132,7 +130,6 @@ const EstatisticasCard = ({
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
-  console.log("Rendering Dashboard", user);
   // Estado dos filtros
   const [filtros, setFiltros] = useState<FiltrosPlacas>({
     empresa: "todos",
@@ -145,9 +142,6 @@ const Dashboard = () => {
   // - queryPlacasLista: dados filtrados apenas para a lista de placas
   const dashboardStats = useDashboardStats();
   const queryPlacasLista = usePlacas(filtros); // Apenas para a lista com filtros
-
-  console.log("dashboardStats", dashboardStats);
-  console.log("queryPlacasLista", queryPlacasLista);
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -203,10 +197,162 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
-
+      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Seção de Totalização */}
+        {/* Seção de Sincronização */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <RefreshCw className="h-6 w-6 text-green-600" />
+            <h3 className="text-lg font-semibold text-gray-900">Informações de Sincronização</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {/* Última Sincronização */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <RefreshCw className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">
+                  Última Sincronização
+                </div>
+                <div className="font-semibold text-gray-900">
+                  {dashboardStats.stats?.syncInfo.lastSyncDate 
+                    ? new Date(dashboardStats.stats.syncInfo.lastSyncDate).toLocaleString("pt-BR")
+                    : "Não disponível"
+                  }
+                </div>
+              </div>
+            </div>
+
+            {/* Novos Veículos */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Car className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">Novos Veículos</div>
+                <div className="font-semibold text-gray-900">
+                  {dashboardStats.stats?.syncInfo.newVehicles || 0} sincronizados
+                </div>
+              </div>
+            </div>
+
+            {/* Veículos Alterados */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <Car className="h-5 w-5 text-yellow-600" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">Veículos Alterados</div>
+                <div className="font-semibold text-gray-900">
+                  {dashboardStats.stats?.syncInfo.updatedVehicles || 0} sincronizados
+                </div>
+              </div>
+            </div>
+
+            {/* Clientes Alterados */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                <User className="h-5 w-5 text-orange-600" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">Clientes Alterados</div>
+                <div className="font-semibold text-gray-900">
+                  {dashboardStats.stats?.syncInfo.updatedClients || 0} sincronizados
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Segunda linha - Estatísticas por Situação SGA */}
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <div className="mb-4">
+              <h4 className="text-md font-medium text-gray-800">Distribuição por Situação SGA</h4>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+              {/* ATIVO */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <div className="text-sm text-gray-600">ATIVO</div>
+                  <div className="font-semibold text-gray-900">
+                    {dashboardStats.stats?.situationStats.ativo || 0}
+                  </div>
+                </div>
+              </div>
+
+              {/* ATIVO (BOAS VINDAS) */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <CheckCircle className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <div className="text-sm text-gray-600">ATIVO (BOAS VINDAS)</div>
+                  <div className="font-semibold text-gray-900">
+                    {dashboardStats.stats?.situationStats.ativoBoasVindas || 0}
+                  </div>
+                </div>
+              </div>
+
+              {/* INADIMPLENTE */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                  <XCircle className="h-5 w-5 text-red-600" />
+                </div>
+                <div>
+                  <div className="text-sm text-gray-600">INADIMPLENTE</div>
+                  <div className="font-semibold text-gray-900">
+                    {dashboardStats.stats?.situationStats.inadimplente || 0}
+                  </div>
+                </div>
+              </div>
+
+              {/* INADIMPLENTE BOAS VINDAS */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                  <XCircle className="h-5 w-5 text-yellow-600" />
+                </div>
+                <div>
+                  <div className="text-sm text-gray-600">INADIMPLENTE BOAS VINDAS</div>
+                  <div className="font-semibold text-gray-900">
+                    {dashboardStats.stats?.situationStats.inadimplenteBoasVindas || 0}
+                  </div>
+                </div>
+              </div>
+
+              {/* INATIVO */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                  <XCircle className="h-5 w-5 text-red-600" />
+                </div>
+                <div>
+                  <div className="text-sm text-gray-600">INATIVO</div>
+                  <div className="font-semibold text-gray-900">
+                    {dashboardStats.stats?.situationStats.inativo || 0}
+                  </div>
+                </div>
+              </div>
+
+              {/* INATIVO(P) */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <XCircle className="h-5 w-5 text-orange-600" />
+                </div>
+                <div>
+                  <div className="text-sm text-gray-600">INATIVO(P)</div>
+                  <div className="font-semibold text-gray-900">
+                    {dashboardStats.stats?.situationStats.inativoP || 0}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Seção de Totalização */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 className="h-6 w-6 text-blue-600" />
             <h3 className="text-lg font-semibold text-gray-900">Totalização Geral</h3>
@@ -308,72 +454,6 @@ const Dashboard = () => {
                   }%`,
                 }}
               ></div>
-            </div>
-          </div>
-        </div>
-
-        {/* Seção de Sincronização */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-          <div className="flex items-center gap-2 mb-4">
-            <RefreshCw className="h-6 w-6 text-green-600" />
-            <h3 className="text-lg font-semibold text-gray-900">Informações de Sincronização</h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {/* Última Sincronização */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <RefreshCw className="h-5 w-5 text-green-600" />
-              </div>
-              <div>
-                <div className="text-sm text-gray-600">
-                  Última Sincronização
-                </div>
-                <div className="font-semibold text-gray-900">
-                  {dashboardStats.stats?.syncInfo.lastSyncDate 
-                    ? new Date(dashboardStats.stats.syncInfo.lastSyncDate).toLocaleString("pt-BR")
-                    : "Não disponível"
-                  }
-                </div>
-              </div>
-            </div>
-
-            {/* Novos Veículos */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Car className="h-5 w-5 text-blue-600" />
-              </div>
-              <div>
-                <div className="text-sm text-gray-600">Novos Veículos</div>
-                <div className="font-semibold text-gray-900">
-                  {dashboardStats.stats?.syncInfo.newVehicles || 0} sincronizados
-                </div>
-              </div>
-            </div>
-
-            {/* Veículos Alterados */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-                <Car className="h-5 w-5 text-yellow-600" />
-              </div>
-              <div>
-                <div className="text-sm text-gray-600">Veículos Alterados</div>
-                <div className="font-semibold text-gray-900">
-                  {dashboardStats.stats?.syncInfo.updatedVehicles || 0} sincronizados
-                </div>
-              </div>
-            </div>
-
-            {/* Clientes Alterados */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                <User className="h-5 w-5 text-orange-600" />
-              </div>
-              <div>
-                <div className="text-sm text-gray-600">Clientes Alterados</div>
-                <div className="font-semibold text-gray-900">
-                  {dashboardStats.stats?.syncInfo.updatedClients || 0} sincronizados
-                </div>
-              </div>
             </div>
           </div>
         </div>
