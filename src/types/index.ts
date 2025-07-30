@@ -85,6 +85,14 @@ export interface DashboardStats {
     updatedVehicles: number;
     updatedClients: number;
   };
+  situationStats: {
+    ativo: number;
+    inativo: number;
+    inativoP: number;
+    inadimplente: number;
+    ativoBoasVindas: number;
+    inadimplenteBoasVindas: number;
+  };
 }
 
 // Tipos para filtros

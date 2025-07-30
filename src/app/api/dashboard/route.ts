@@ -92,6 +92,37 @@ export async function GET(request: NextRequest) {
       .select({ total: count() })
       .from(sgaHinovaClient);
 
+    // Buscar estatísticas por sgaSituationId
+    const [situationAtivo] = await db
+      .select({ total: count() })
+      .from(sgaHinovaVehicle)
+      .where(eq(sgaHinovaVehicle.sgaSituationId, '1'));
+
+    const [situationInativo] = await db
+      .select({ total: count() })
+      .from(sgaHinovaVehicle)
+      .where(eq(sgaHinovaVehicle.sgaSituationId, '2'));
+
+    const [situationInativoP] = await db
+      .select({ total: count() })
+      .from(sgaHinovaVehicle)
+      .where(eq(sgaHinovaVehicle.sgaSituationId, '3'));
+
+    const [situationInadimplente] = await db
+      .select({ total: count() })
+      .from(sgaHinovaVehicle)
+      .where(eq(sgaHinovaVehicle.sgaSituationId, '4'));
+
+    const [situationAtivoBoasVindas] = await db
+      .select({ total: count() })
+      .from(sgaHinovaVehicle)
+      .where(eq(sgaHinovaVehicle.sgaSituationId, '6'));
+
+    const [situationInadimplenteBoasVindas] = await db
+      .select({ total: count() })
+      .from(sgaHinovaVehicle)
+      .where(eq(sgaHinovaVehicle.sgaSituationId, '10'));
+
     // Buscar informações de sincronização da tabela sgaHinovaState
     const syncStates = await db
       .select()
@@ -160,7 +191,15 @@ export async function GET(request: NextRequest) {
             inactive: binsatInactive.total,
           }
         },
-        syncInfo
+        syncInfo,
+        situationStats: {
+          ativo: situationAtivo.total,
+          inativo: situationInativo.total,
+          inativoP: situationInativoP.total,
+          inadimplente: situationInadimplente.total,
+          ativoBoasVindas: situationAtivoBoasVindas.total,
+          inadimplenteBoasVindas: situationInadimplenteBoasVindas.total,
+        }
       }
     });
   } catch (error) {
