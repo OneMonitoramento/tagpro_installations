@@ -11,13 +11,14 @@ import {
   LogOut,
   User,
   Download,
+  FileText,
 } from "lucide-react";
-import { usePlacas } from "@/hooks/usePlacas";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useAuth } from "@/contexts/AuthContext";
-import { FiltrosPlacas, Estatisticas } from "@/types";
-import InfiniteScrollList from "./InfiniteScrollList";
-import FiltrosPlacasComponent from "./FiltrosPlacas";
+import { FiltrosPlacas, FiltrosServiceOrders, Estatisticas } from "@/types";
+import Tabs from "./Tabs";
+import VehiclesTab from "./VehiclesTab";
+import ServiceOrdersTab from "./ServiceOrdersTab";
 import Loading from "./Loading";
 import ErrorMessage from "./ErrorMessage";
 
@@ -31,7 +32,7 @@ const EstatisticasCard = ({
   titulo: string;
   stats: Estatisticas;
   cor: string;
-  empresa: 'lwsim' | 'binsat';
+  empresa: 'lw_sim' | 'binsat';
 }) => {
   const handleExportExcel = async () => {
     try {
@@ -130,18 +131,39 @@ const EstatisticasCard = ({
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
-  // Estado dos filtros
-  const [filtros, setFiltros] = useState<FiltrosPlacas>({
-    empresa: "todos",
-    status: "todos",
+  
+  // Estado da aba ativa
+  const [activeTab, setActiveTab] = useState('service-orders');
+  
+  // Estado dos filtros para cada aba
+  const [filtrosVeiculos, setFiltrosVeiculos] = useState<FiltrosPlacas>({
+    empresa: undefined,
+    status: undefined,
+    pesquisa: "",
+  });
+  
+  const [filtrosServiceOrders, setFiltrosServiceOrders] = useState<FiltrosServiceOrders>({
+    empresa: undefined,
+    status: undefined,
     pesquisa: "",
   });
 
-  // Queries separadas:
-  // - dashboardStats: estatísticas gerais e informações de sincronização (incluindo dados por empresa)
-  // - queryPlacasLista: dados filtrados apenas para a lista de placas
+  // Query para estatísticas gerais do dashboard
   const dashboardStats = useDashboardStats();
-  const queryPlacasLista = usePlacas(filtros); // Apenas para a lista com filtros
+  
+  // Configuração das abas
+  const tabs = [
+    {
+      id: 'service-orders',
+      label: 'Ordens de Serviço',
+      icon: FileText,
+    },
+    {
+      id: 'vehicles',
+      label: 'Veículos',
+      icon: Car,
+    },
+  ];
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -172,7 +194,6 @@ const Dashboard = () => {
               <button
                 onClick={() => {
                   dashboardStats.refetch();
-                  queryPlacasLista.refetch();
                 }}
                 disabled={dashboardStats.isLoading}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -458,7 +479,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Mensagens de Erro */}
+        {/* Mensagens de Erro do Dashboard */}
         {dashboardStats.isError && (
           <ErrorMessage
             message={
@@ -467,27 +488,19 @@ const Dashboard = () => {
             onRetry={() => dashboardStats.refetch()}
           />
         )}
-        {queryPlacasLista.isError && (
-          <ErrorMessage
-            message={
-              queryPlacasLista.error || "Erro ao carregar dados das placas"
-            }
-            onRetry={() => queryPlacasLista.refetch()}
-          />
-        )}
 
         {/* Estatísticas por Empresa - SEMPRE DADOS TOTAIS (não afetadas pelos filtros) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <EstatisticasCard
             titulo="LW SIM"
             stats={{
-              total: dashboardStats.stats?.companies.lwsim.total || 0,
-              instaladas: dashboardStats.stats?.companies.lwsim.installed || 0,
-              pendentes: dashboardStats.stats?.companies.lwsim.pending || 0,
-              inativas: dashboardStats.stats?.companies.lwsim.inactive || 0
+              total: dashboardStats.stats?.companies.lw_sim.total || 0,
+              instaladas: dashboardStats.stats?.companies.lw_sim.installed || 0,
+              pendentes: dashboardStats.stats?.companies.lw_sim.pending || 0,
+              inativas: dashboardStats.stats?.companies.lw_sim.inactive || 0
             }}
             cor="text-blue-600"
-            empresa="lwsim"
+            empresa="lw_sim"
           />
           <EstatisticasCard
             titulo="Binsat"
@@ -502,50 +515,34 @@ const Dashboard = () => {
           />
         </div>
 
-        {/* Barra de Pesquisa e Filtros */}
-        <FiltrosPlacasComponent
-          filtros={filtros}
-          onFiltrosChange={setFiltros}
-          totalResultados={queryPlacasLista.estatisticas.totalGeral || 0}
-          isLoading={queryPlacasLista.isLoading}
-        />
-
-        {/* Loading inicial apenas se não houver dados carregados */}
-        {queryPlacasLista.isLoading && queryPlacasLista.placas.length === 0 && (
-          <Loading message="Carregando placas..." size="lg" />
-        )}
-
-        {/* Lista de Placas - AFETADA PELOS FILTROS */}
-        {(queryPlacasLista.placas.length > 0 ||
-          !queryPlacasLista.isLoading) && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  Lista de Placas
-                </h2>
-                <div className="text-sm text-gray-600">
-                  {queryPlacasLista.estatisticas.instaladas} de{" "}
-                  {queryPlacasLista.estatisticas.total} instaladas
-                  {queryPlacasLista.hasNextPage && (
-                    <span className="ml-2 text-blue-600">
-                      (scroll para mais)
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Lista com Infinite Scroll */}
-              <InfiniteScrollList
-                placas={queryPlacasLista.placas}
-                onToggleStatus={queryPlacasLista.toggleStatus}
-                hasNextPage={queryPlacasLista.hasNextPage}
-                isFetchingNextPage={queryPlacasLista.isFetchingNextPage}
-                fetchNextPage={queryPlacasLista.fetchNextPage}
-              />
-            </div>
+        {/* Interface com Abas */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          {/* Navegação das Abas */}
+          <div className="px-6 pt-6">
+            <Tabs
+              tabs={tabs}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+            />
           </div>
-        )}
+          
+          {/* Conteúdo das Abas */}
+          <div className="p-6">
+            {activeTab === 'service-orders' && (
+              <ServiceOrdersTab
+                filtros={filtrosServiceOrders}
+                onFiltrosChange={setFiltrosServiceOrders}
+              />
+            )}
+            
+            {activeTab === 'vehicles' && (
+              <VehiclesTab
+                filtros={filtrosVeiculos}
+                onFiltrosChange={setFiltrosVeiculos}
+              />
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

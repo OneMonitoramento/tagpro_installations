@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, X } from 'lucide-react';
 import { FiltrosPlacas } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface FiltrosPlacasProps {
   filtros: FiltrosPlacas;
@@ -20,6 +21,34 @@ const FiltrosPlacasComponent: React.FC<FiltrosPlacasProps> = ({
 }) => {
   const [pesquisaLocal, setPesquisaLocal] = useState(filtros.pesquisa || '');
   const [showFiltrosAvancados, setShowFiltrosAvancados] = useState(false);
+  const { user } = useAuth();
+
+  // Get user role-based company filter
+  const getUserCompanyFilter = () => {
+    if (user?.role === 'binsat') return 'binsat';
+    if (user?.role === 'lwsim') return 'lw_sim';
+    if (user?.role === 'tagpro') return 'todos';
+    return 'todos'; // default for other roles like admin
+  };
+
+  // Check if company filter should be disabled
+  const isCompanyFilterDisabled = () => {
+    return user?.role === 'binsat'; // Only binsat role has disabled filter
+  };
+
+  // Set default filters based on user role
+  useEffect(() => {
+    if (user && (!filtros.empresa || !filtros.status)) {
+      // Apply default filters when user is loaded and filters are not set
+      const defaultFilters: FiltrosPlacas = {
+        empresa: getUserCompanyFilter(),
+        status: 'pending', // Default to pending for vehicles as well
+        pesquisa: filtros.pesquisa || '',
+      };
+
+      onFiltrosChange(defaultFilters);
+    }
+  }, [user]); // Run when user changes
 
   // Debounce da pesquisa
   useEffect(() => {
@@ -33,7 +62,7 @@ const FiltrosPlacasComponent: React.FC<FiltrosPlacasProps> = ({
     return () => clearTimeout(timeoutId);
   }, [pesquisaLocal]); // Removido 'filtros' e 'onFiltrosChange' das dependências
 
-  const handleEmpresaChange = (empresa: 'lwsim' | 'binsat' | 'todos') => {
+  const handleEmpresaChange = (empresa: 'lw_sim' | 'binsat' | 'todos') => {
     onFiltrosChange({
       ...filtros,
       empresa,
@@ -50,8 +79,8 @@ const FiltrosPlacasComponent: React.FC<FiltrosPlacasProps> = ({
   const limparFiltros = () => {
     setPesquisaLocal('');
     onFiltrosChange({
-      empresa: 'todos',
-      status: 'todos',
+      empresa: getUserCompanyFilter(),
+      status: 'pending', // Default to pending
       pesquisa: '',
     });
   };
@@ -122,7 +151,7 @@ const FiltrosPlacasComponent: React.FC<FiltrosPlacasProps> = ({
               <div className="space-y-2">
                 {[
                   { value: 'todos', label: 'Todas as empresas' },
-                  { value: 'lwsim', label: 'LW SIM' },
+                  { value: 'lw_sim', label: 'LW SIM' },
                   { value: 'binsat', label: 'Binsat' },
                 ].map((opcao) => (
                   <label key={opcao.value} className="flex items-center">
@@ -131,7 +160,7 @@ const FiltrosPlacasComponent: React.FC<FiltrosPlacasProps> = ({
                       name="empresa"
                       value={opcao.value}
                       checked={filtros.empresa === opcao.value || (!filtros.empresa && opcao.value === 'todos')}
-                      onChange={() => handleEmpresaChange(opcao.value as "lwsim" | "binsat" | "todos")}
+                      onChange={() => handleEmpresaChange(opcao.value as "lw_sim" | "binsat" | "todos")}
                       className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                     />
                     <span className="ml-2 text-sm text-gray-700">{opcao.label}</span>
