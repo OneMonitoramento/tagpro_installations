@@ -14,9 +14,9 @@ interface InfiniteScrollListProps {
 }
 
 // Função para obter configuração da empresa
-const getEmpresaConfig = (empresa: 'lwsim' | 'binsat') => {
+const getEmpresaConfig = (empresa: 'lw_sim' | 'binsat') => {
   const configs = {
-    lwsim: {
+    lw_sim: {
       name: 'LW SIM',
       bgColor: 'bg-blue-100',
       textColor: 'text-blue-700',

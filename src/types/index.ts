@@ -12,7 +12,7 @@ export interface Placa {
   id: string;
   numeroPlaca: string;
   modelo: string;
-  empresa: 'lwsim' | 'binsat';
+  empresa: 'lw_sim' | 'binsat';
   status: 'pending' | 'installed' | 'inactive';
   instalado: boolean; // deprecated, mantido para compatibilidade
   dataInstalacao?: string;
@@ -66,7 +66,7 @@ export interface DashboardStats {
     totalInactive: number;
   };
   companies: {
-    lwsim: {
+    lw_sim: {
       total: number;
       installed: number;
       pending: number;
@@ -97,7 +97,7 @@ export interface DashboardStats {
 
 // Tipos para filtros
 export interface FiltrosPlacas {
-  empresa?: 'lwsim' | 'binsat' | 'todos';
+  empresa?: 'lw_sim' | 'binsat' | 'todos';
   status?: 'installed' | 'pending' | 'inactive' | 'todos';
   pesquisa?: string;
 }
@@ -129,4 +129,48 @@ export interface LoginCredentials {
 export interface AuthResponse {
   user: User;
   token: string;
+}
+
+// Tipos para Ordens de Serviço
+export interface ServiceOrder {
+  id: string;
+  sgaVehicleId?: string;
+  sgaClientId?: string;
+  lightServiceOrderId?: string;
+  lightVehicleId?: string;
+  company?: string;
+  serviceOrderNumber?: string;
+  description?: string;
+  serviceType?: string;
+  priority?: string;
+  status: string;
+  scheduledDate?: string;
+  completedDate?: string;
+  sgaEvent?: string;
+  sgaEventDate?: string;
+  createdAt: string;
+  updatedAt: string;
+  // Vehicle data
+  vehiclePlate?: string;
+  vehicleManufacturer?: string;
+  vehicleModel?: string;
+  vehicleModelYear?: string;
+  // Client data
+  clientName?: string;
+  clientCpf?: string;
+}
+
+// Tipos para filtros de ordens de serviço
+export interface FiltrosServiceOrders {
+  empresa?: 'lw_sim' | 'binsat' | 'todos';
+  status?: string;
+  pesquisa?: string;
+}
+
+// Tipos para API responses de ordens de serviço
+export interface ServiceOrdersResponse {
+  data: ServiceOrder[];
+  nextCursor?: string;
+  hasNextPage: boolean;
+  totalCount: number;
 }

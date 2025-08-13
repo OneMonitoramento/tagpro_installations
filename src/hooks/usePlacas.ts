@@ -13,13 +13,8 @@ import {
   PlacasResponse,
   UpdateStatusParams,
   Estatisticas,
+  FiltrosPlacas,
 } from "@/types";
-
-interface FiltrosPlacas {
-  empresa?: "lwsim" | "binsat" | "todos";
-  status?: "installed" | "pending" | "inactive" | "todos";
-  pesquisa?: string;
-}
 
 // Chamada real para a API de placas
 const fetchPlacas = async ({
@@ -228,15 +223,15 @@ export const useEstatisticasGerais = () => {
 
   // Separar estatísticas por empresa (dados totais)
   const estatisticasLwsim = {
-    total: placas.filter((p: Placa) => p.empresa === "lwsim").length,
+    total: placas.filter((p: Placa) => p.empresa === "lw_sim").length,
     instaladas: placas.filter(
-      (p: Placa) => p.empresa === "lwsim" && p.status === "installed"
+      (p: Placa) => p.empresa === "lw_sim" && p.status === "installed"
     ).length,
     pendentes: placas.filter(
-      (p: Placa) => p.empresa === "lwsim" && p.status === "pending"
+      (p: Placa) => p.empresa === "lw_sim" && p.status === "pending"
     ).length,
     inativas: placas.filter(
-      (p: Placa) => p.empresa === "lwsim" && p.status === "inactive"
+      (p: Placa) => p.empresa === "lw_sim" && p.status === "inactive"
     ).length,
   };
 
