@@ -21,7 +21,7 @@ const mapVehicleToPlaca = (vehicle: any): Placa => {
     id: vehicle.id.toString(),
     numeroPlaca: vehicle.plate,
     modelo: vehicle.model || 'Modelo não informado',
-    empresa: vehicle.company === 'lw_sim' ? 'lwsim' : 'binsat',
+    empresa: vehicle.company === 'lw_sim' ? 'lw_sim' : 'binsat',
     status,
     instalado: status === 'installed', // mantido para compatibilidade
     dataInstalacao: status === 'installed' ? vehicle.updatedAt?.toISOString().split('T')[0] : undefined,
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '0');
     const limit = parseInt(searchParams.get('limit') || '20');
-    const empresa = searchParams.get('empresa') as 'lwsim' | 'binsat' | 'todos' | null;
+    const empresa = searchParams.get('empresa') as 'lw_sim' | 'binsat' | 'todos' | null;
     const status = searchParams.get('status') as 'installed' | 'pending' | 'inactive' | 'todos' | null;
     const pesquisa = searchParams.get('pesquisa') || '';
     
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
 
     // Filtro de empresa
     if (empresa && empresa !== 'todos') {
-      const companyValue = empresa === 'lwsim' ? 'lw_sim' : 'binsat';
+      const companyValue = empresa === 'lw_sim' ? 'lw_sim' : 'binsat';
       conditions.push(eq(sgaHinovaVehicle.company, companyValue));
     }
 

@@ -4,13 +4,9 @@ import { authenticateUser } from "@/lib/auth/users";
 import { generateToken } from "@/lib/auth/jwt";
 
 export async function POST(request: NextRequest) {
-  console.log("🔐 Login endpoint called");
-
   try {
     const body = await request.json();
     const { username, password } = body;
-
-    console.log("📝 Login attempt:", { username });
 
     // Validar campos obrigatórios
     if (!username || !password) {
@@ -40,8 +36,6 @@ export async function POST(request: NextRequest) {
 
     // Retornar dados do usuário (sem senha)
     const { password: _, ...userWithoutPassword } = user;
-
-    console.log("✅ Login successful:", userWithoutPassword);
 
     return NextResponse.json({
       message: "Login realizado com sucesso",

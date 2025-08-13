@@ -38,5 +38,6 @@ export const sgaHinovaClient = mysqlTable('sga_hinova_clients', {
   index('company_createdAt_idx').on(table.company, table.createdAt)
 ]);
 
+
 export type SgaHinovaClient = typeof sgaHinovaClient.$inferSelect;
 export type NewSgaHinovaClient = typeof sgaHinovaClient.$inferInsert;

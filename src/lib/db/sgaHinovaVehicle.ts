@@ -33,5 +33,6 @@ export const sgaHinovaVehicle = mysqlTable('sga_hinova_vehicles', {
   index('company_createdAt_idx').on(table.company, table.createdAt)
 ]);
 
+
 export type SgaHinovaVehicle = typeof sgaHinovaVehicle.$inferSelect;
 export type NewSgaHinovaVehicle = typeof sgaHinovaVehicle.$inferInsert;

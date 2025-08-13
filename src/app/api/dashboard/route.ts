@@ -178,7 +178,7 @@ export async function GET(request: NextRequest) {
           totalInactive: inactiveVehicles.total,
         },
         companies: {
-          lwsim: {
+          lw_sim: {
             total: lwSimTotal.total,
             installed: lwSimInstalled.total,
             pending: lwSimPending.total,
