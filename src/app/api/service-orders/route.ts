@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
     const empresa = searchParams.get('empresa');
     const status = searchParams.get('status');
     const pesquisa = searchParams.get('pesquisa');
+    const tipoInstalacao = searchParams.get('tipoInstalacao');
     const cursor = searchParams.get('cursor');
 
     // Build where conditions for filters (excluding pagination)
@@ -28,6 +29,11 @@ export async function GET(request: NextRequest) {
     // Filter by status
     if (status && status !== 'todos') {
       filterConditions.push(like(sgaServiceOrders.status, `%${status}%`));
+    }
+
+    // Filter by installation type (serviceType)
+    if (tipoInstalacao && tipoInstalacao !== 'todos') {
+      filterConditions.push(like(sgaServiceOrders.serviceType, `%${tipoInstalacao}%`));
     }
 
     // Filter by search term

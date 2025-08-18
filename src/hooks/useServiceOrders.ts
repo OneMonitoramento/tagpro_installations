@@ -24,6 +24,9 @@ const fetchServiceOrders = async ({
   if (filtros.pesquisa && filtros.pesquisa.trim()) {
     params.set('pesquisa', filtros.pesquisa);
   }
+  if (filtros.tipoInstalacao && filtros.tipoInstalacao !== 'todos') {
+    params.set('tipoInstalacao', filtros.tipoInstalacao);
+  }
   if (pageParam) {
     params.set('cursor', pageParam);
   }

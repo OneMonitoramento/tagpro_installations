@@ -38,6 +38,7 @@ const ServiceOrdersTab: React.FC<ServiceOrdersTabProps> = ({
       if (filtros.empresa) params.set('empresa', filtros.empresa);
       if (filtros.status) params.set('status', filtros.status);
       if (filtros.pesquisa) params.set('pesquisa', filtros.pesquisa);
+      if (filtros.tipoInstalacao) params.set('tipoInstalacao', filtros.tipoInstalacao);
       
       const response = await fetch(`/api/export-service-orders?${params.toString()}`);
       

@@ -37,17 +37,18 @@ const FiltrosServiceOrdersComponent: React.FC<FiltrosServiceOrdersProps> = ({
 
   // Set default filters based on user role
   useEffect(() => {
-    if (user && (!filtros.empresa || !filtros.status)) {
+    if (user && (!filtros.empresa || !filtros.status || !filtros.tipoInstalacao)) {
       // Apply default filters when user is loaded and filters are not set
       const defaultFilters: FiltrosServiceOrders = {
         empresa: getUserCompanyFilter(),
         status: 'pending', // Always default to pending
         pesquisa: filtros.pesquisa || '',
+        tipoInstalacao: 'todos', // Default to all types
       };
 
       onFiltrosChange(defaultFilters);
     }
-  }, [user, filtros.empresa, filtros.status]); // Run when user or filters change
+  }, [user, filtros.empresa, filtros.status, filtros.tipoInstalacao]); // Run when user or filters change
 
   // Debounce da pesquisa
   useEffect(() => {
@@ -75,12 +76,20 @@ const FiltrosServiceOrdersComponent: React.FC<FiltrosServiceOrdersProps> = ({
     });
   };
 
+  const handleTipoInstalacaoChange = (tipoInstalacao: 'installation' | 'uninstallation' | 'todos') => {
+    onFiltrosChange({
+      ...filtros,
+      tipoInstalacao,
+    });
+  };
+
   const limparFiltros = () => {
     setPesquisaLocal('');
     onFiltrosChange({
       empresa: getUserCompanyFilter(),
       status: 'pending', // Default to pending
       pesquisa: '',
+      tipoInstalacao: 'todos',
     });
   };
 
@@ -88,14 +97,21 @@ const FiltrosServiceOrdersComponent: React.FC<FiltrosServiceOrdersProps> = ({
     return (
       (filtros.empresa && filtros.empresa !== 'todos') ||
       (filtros.status && filtros.status !== 'todos') ||
-      (filtros.pesquisa && filtros.pesquisa.trim() !== '')
+      (filtros.pesquisa && filtros.pesquisa.trim() !== '') ||
+      (filtros.tipoInstalacao && filtros.tipoInstalacao !== 'todos')
     );
   };
 
   const statusOptions = [
+    { value: 'todos', label: 'Todos os status' },
     { value: 'pending', label: 'Pendente' },
     { value: 'done', label: 'Concluído' },
-    { value: 'todos', label: 'Todos os status' },
+  ];
+
+  const tipoInstalacaoOptions = [
+    { value: 'todos', label: 'Todos os tipos' },
+    { value: 'installation', label: 'Instalação' },
+    { value: 'uninstallation', label: 'Remoção' },
   ];
 
   return (
@@ -129,7 +145,7 @@ const FiltrosServiceOrdersComponent: React.FC<FiltrosServiceOrdersProps> = ({
 
       {/* Filtros - Sempre Visíveis */}
       <div className="border-t border-gray-200 pt-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Filtro de Empresa */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -171,6 +187,28 @@ const FiltrosServiceOrdersComponent: React.FC<FiltrosServiceOrdersProps> = ({
                     value={opcao.value}
                     checked={filtros.status === opcao.value || (!filtros.status && opcao.value === 'pending')}
                     onChange={() => handleStatusChange(opcao.value)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">{opcao.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Filtro de Tipo de Instalação */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Tipo de Instalação
+            </label>
+            <div className="space-y-2">
+              {tipoInstalacaoOptions.map((opcao) => (
+                <label key={opcao.value} className="flex items-center">
+                  <input
+                    type="radio"
+                    name="tipoInstalacao"
+                    value={opcao.value}
+                    checked={filtros.tipoInstalacao === opcao.value || (!filtros.tipoInstalacao && opcao.value === 'todos')}
+                    onChange={() => handleTipoInstalacaoChange(opcao.value as 'installation' | 'uninstallation' | 'todos')}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                   />
                   <span className="ml-2 text-sm text-gray-700">{opcao.label}</span>

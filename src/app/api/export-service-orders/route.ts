@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
     const empresa = searchParams.get('empresa') as 'lw_sim' | 'binsat' | 'todos';
     const status = searchParams.get('status') as 'pending' | 'done' | 'todos';
     const pesquisa = searchParams.get('pesquisa') || '';
+    const tipoInstalacao = searchParams.get('tipoInstalacao') as 'installation' | 'uninstallation' | 'todos';
 
     // Build query conditions
     const conditions = [];
@@ -22,6 +23,10 @@ export async function GET(request: NextRequest) {
     
     if (status && status !== 'todos') {
       conditions.push(eq(sgaServiceOrders.status, status));
+    }
+
+    if (tipoInstalacao && tipoInstalacao !== 'todos') {
+      conditions.push(like(sgaServiceOrders.serviceType, `%${tipoInstalacao}%`));
     }
     
     if (pesquisa.trim()) {
@@ -130,7 +135,9 @@ export async function GET(request: NextRequest) {
                          empresa === 'lw_sim' ? 'lwsim' : empresa;
     const statusFilter = status === 'todos' ? 'todos' : 
                         status === 'pending' ? 'pendentes' : 'concluidas';
-    const fileName = `ordens_servico_${empresaFilter}_${statusFilter}_${currentDate}.xlsx`;
+    const tipoFilter = tipoInstalacao === 'todos' ? 'todos' :
+                      tipoInstalacao === 'installation' ? 'instalacao' : 'remocao';
+    const fileName = `ordens_servico_${empresaFilter}_${statusFilter}_${tipoFilter}_${currentDate}.xlsx`;
 
     // Return file as response
     return new NextResponse(excelBuffer, {

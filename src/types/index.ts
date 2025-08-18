@@ -165,6 +165,7 @@ export interface FiltrosServiceOrders {
   empresa?: 'lw_sim' | 'binsat' | 'todos';
   status?: string;
   pesquisa?: string;
+  tipoInstalacao?: 'installation' | 'uninstallation' | 'todos';
 }
 
 // Tipos para API responses de ordens de serviço
