@@ -122,8 +122,8 @@ const ServiceOrdersTab: React.FC<ServiceOrdersTabProps> = ({
                   {isExporting ? 'Exportando...' : 'Exportar Excel'}
                 </button>
                 <div className="text-sm text-gray-600">
-                  {queryServiceOrders.estatisticas.total} de{" "}
-                  {queryServiceOrders.estatisticas.totalGeral} carregadas
+                  Exibindo {queryServiceOrders.estatisticas.total} de{" "}
+                  {queryServiceOrders.estatisticas.totalGeral}
                   {queryServiceOrders.hasNextPage && (
                     <span className="ml-2 text-blue-600">
                       (scroll para mais)

@@ -55,8 +55,8 @@ const VehiclesTab: React.FC<VehiclesTabProps> = ({
                 Lista de Veículos
               </h2>
               <div className="text-sm text-gray-600">
-                {queryPlacasLista.estatisticas.total} de{" "}
-                {queryPlacasLista.estatisticas.totalGeral} carregadas
+                Exibindo {queryPlacasLista.estatisticas.total} de{" "}
+                {queryPlacasLista.estatisticas.totalGeral}
                 {queryPlacasLista.hasNextPage && (
                   <span className="ml-2 text-blue-600">
                     (scroll para mais)
