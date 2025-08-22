@@ -32,6 +32,9 @@ npm run db:push
 
 # Open Drizzle Studio (database GUI)
 npm run db:studio
+
+# Generate password hash for user authentication
+npm run generate-password <password>
 ```
 
 ## Architecture Overview
@@ -89,6 +92,34 @@ npm run db:studio
 - Database schema includes tables for clients, vehicles, and state management
 - Vehicle data is mapped from database fields (`plate` → `numeroPlaca`, `model` → `modelo`, etc.)
 - Database migrations are managed with `drizzle-kit` commands
+
+## User Management
+
+### Generating Password Hashes
+
+To create or update user passwords, use the password generator:
+
+```bash
+# Generate a password hash
+npm run generate-password myNewPassword123
+
+# Example output:
+# Password: myNewPassword123
+# Hash: $2b$10$s4eaY8AvUlzv0SIexFhJAOdt1Fh9A6uPQ94HLhbWVNF7apuMMo/KG
+```
+
+**How to update user passwords:**
+
+1. Run the password generator command
+2. Copy the generated hash
+3. Edit `src/lib/auth/users.ts`
+4. Replace the password field for the target user with the new hash
+
+**Authentication System:**
+- Uses bcryptjs with 10 salt rounds (same as existing users)
+- Compatible with JWT token generation
+- Passwords are validated using `verifyPassword()` function
+- Current users: admin, lwsim, binsat, tagpro, user
 
 ## Git Commit Guidelines
 
