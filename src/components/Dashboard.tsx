@@ -191,7 +191,7 @@ const Dashboard = () => {
               </div>
 
               {/* Refresh Button */}
-              <button
+              {/* <button
                 onClick={() => {
                   dashboardStats.refetch();
                 }}
@@ -204,7 +204,7 @@ const Dashboard = () => {
                   }`}
                 />
                 Atualizar
-              </button>
+              </button> */}
 
               {/* Logout Button */}
               <button
