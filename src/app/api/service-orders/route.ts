@@ -1,53 +1,68 @@
 // Path: ./src/app/api/service-orders/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { sgaServiceOrders } from '@/lib/db/sgaServiceOrders';
-import { sgaHinovaVehicle } from '@/lib/db/sgaHinovaVehicle';
-import { sgaHinovaClient } from '@/lib/db/sgaHinovaClient';
-import { and, or, like, desc, sql, gt, eq } from 'drizzle-orm';
-import type { ServiceOrder } from '@/types';
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { sgaServiceOrders } from "@/lib/db/sgaServiceOrders";
+import { sgaHinovaVehicle } from "@/lib/db/sgaHinovaVehicle";
+import { sgaHinovaClient } from "@/lib/db/sgaHinovaClient";
+import { and, or, like, desc, sql, gt, eq } from "drizzle-orm";
+import type { ServiceOrder } from "@/types";
 
 const ITEMS_PER_PAGE = 20;
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const empresa = searchParams.get('empresa');
-    const status = searchParams.get('status');
-    const pesquisa = searchParams.get('pesquisa');
-    const tipoInstalacao = searchParams.get('tipoInstalacao');
-    const cursor = searchParams.get('cursor');
+    const empresa = searchParams.get("empresa");
+    const status = searchParams.get("status");
+    const pesquisa = searchParams.get("pesquisa");
+    const tipoInstalacao = searchParams.get("tipoInstalacao");
+    const evento = searchParams.get("evento");
+    const cursor = searchParams.get("cursor");
 
     // Build where conditions for filters (excluding pagination)
     const filterConditions = [];
 
     // Filter by company
-    if (empresa && empresa !== 'todos') {
-      filterConditions.push(like(sgaServiceOrders.company, empresa === 'lw_sim' ? '%lw_sim%' : '%binsat%'));
+    if (empresa && empresa !== "todos") {
+      filterConditions.push(
+        like(
+          sgaServiceOrders.company,
+          empresa === "lw_sim" ? "%lw_sim%" : "%binsat%"
+        )
+      );
     }
 
     // Filter by status
-    if (status && status !== 'todos') {
+    if (status && status !== "todos") {
       filterConditions.push(like(sgaServiceOrders.status, `%${status}%`));
     }
 
     // Filter by installation type (serviceType)
-    if (tipoInstalacao && tipoInstalacao !== 'todos') {
-      filterConditions.push(like(sgaServiceOrders.serviceType, `%${tipoInstalacao}%`));
+    if (tipoInstalacao && tipoInstalacao !== "todos") {
+      filterConditions.push(
+        eq(sgaServiceOrders.serviceType, tipoInstalacao)
+      );
+    }
+
+    // Filter by event (sgaEvent)
+    if (evento && evento !== "todos") {
+      filterConditions.push(
+        eq(sgaServiceOrders.sgaEvent, evento)
+      );
     }
 
     // Filter by search term
     if (pesquisa && pesquisa.trim()) {
       const searchTerm = `%${pesquisa.trim()}%`;
       const numericSearch = parseInt(pesquisa.trim());
-      
+
       const searchConditions = [
         like(sgaServiceOrders.serviceOrderNumber, searchTerm),
         like(sgaServiceOrders.description, searchTerm),
         like(sgaServiceOrders.sgaVehicleId, searchTerm),
         like(sgaServiceOrders.lightServiceOrderId, searchTerm),
         like(sgaHinovaVehicle.plate, searchTerm),
-        like(sgaHinovaClient.name, searchTerm)
+        like(sgaHinovaClient.name, searchTerm),
       ];
 
       // If the search term is numeric, also search by ID
@@ -59,7 +74,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Build where clause for filters only (for total count)
-    const filterWhereClause = filterConditions.length > 0 ? and(...filterConditions) : undefined;
+    const filterWhereClause =
+      filterConditions.length > 0 ? and(...filterConditions) : undefined;
 
     // Build complete where conditions including pagination
     const allWhereConditions = [...filterConditions];
@@ -88,7 +104,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Build final where clause with all conditions (including pagination)
-    const whereClause = allWhereConditions.length > 0 ? and(...allWhereConditions) : undefined;
+    const whereClause =
+      allWhereConditions.length > 0 ? and(...allWhereConditions) : undefined;
 
     // Execute query with joins to get vehicle and client data
     const serviceOrders = await db
@@ -122,11 +139,11 @@ export async function GET(request: NextRequest) {
       })
       .from(sgaServiceOrders)
       .leftJoin(
-        sgaHinovaVehicle, 
+        sgaHinovaVehicle,
         eq(sgaServiceOrders.sgaVehicleId, sgaHinovaVehicle.sgaVehicleId)
       )
       .leftJoin(
-        sgaHinovaClient, 
+        sgaHinovaClient,
         eq(sgaServiceOrders.sgaClientId, sgaHinovaClient.sgaClientId)
       )
       .where(whereClause)
@@ -135,13 +152,16 @@ export async function GET(request: NextRequest) {
 
     // Determine if there are more pages
     const hasNextPage = serviceOrders.length > ITEMS_PER_PAGE;
-    const returnedOrders = hasNextPage ? serviceOrders.slice(0, ITEMS_PER_PAGE) : serviceOrders;
+    const returnedOrders = hasNextPage
+      ? serviceOrders.slice(0, ITEMS_PER_PAGE)
+      : serviceOrders;
 
     // Get next cursor - use composite cursor with createdAt and id
-    const nextCursor = hasNextPage 
+    const nextCursor = hasNextPage
       ? JSON.stringify({
-          createdAt: returnedOrders[returnedOrders.length - 1].createdAt?.toISOString(),
-          id: returnedOrders[returnedOrders.length - 1].id
+          createdAt:
+            returnedOrders[returnedOrders.length - 1].createdAt?.toISOString(),
+          id: returnedOrders[returnedOrders.length - 1].id,
         })
       : undefined;
 
@@ -150,11 +170,11 @@ export async function GET(request: NextRequest) {
       .select({ count: sql`count(*)` })
       .from(sgaServiceOrders)
       .leftJoin(
-        sgaHinovaVehicle, 
+        sgaHinovaVehicle,
         eq(sgaServiceOrders.sgaVehicleId, sgaHinovaVehicle.sgaVehicleId)
       )
       .leftJoin(
-        sgaHinovaClient, 
+        sgaHinovaClient,
         eq(sgaServiceOrders.sgaClientId, sgaHinovaClient.sgaClientId)
       )
       .where(filterWhereClause);
@@ -176,8 +196,8 @@ export async function GET(request: NextRequest) {
       completedDate: order.completedDate?.toISOString() || undefined,
       sgaEvent: order.sgaEvent || undefined,
       sgaEventDate: order.sgaEventDate?.toISOString() || undefined,
-      createdAt: order.createdAt?.toISOString() || '',
-      updatedAt: order.updatedAt?.toISOString() || '',
+      createdAt: order.createdAt?.toISOString() || "",
+      updatedAt: order.updatedAt?.toISOString() || "",
       // Vehicle data
       vehiclePlate: order.vehiclePlate || undefined,
       vehicleManufacturer: order.vehicleManufacturer || undefined,
@@ -194,13 +214,12 @@ export async function GET(request: NextRequest) {
       hasNextPage,
       totalCount: Number(totalCount),
     });
-
   } catch (error) {
-    console.error('Erro ao buscar ordens de serviço:', error);
+    console.error("Erro ao buscar ordens de serviço:", error);
     return NextResponse.json(
-      { 
-        error: 'Erro interno do servidor ao buscar ordens de serviço',
-        details: error instanceof Error ? error.message : 'Erro desconhecido'
+      {
+        error: "Erro interno do servidor ao buscar ordens de serviço",
+        details: error instanceof Error ? error.message : "Erro desconhecido",
       },
       { status: 500 }
     );

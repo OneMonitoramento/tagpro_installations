@@ -44,6 +44,7 @@ const FiltrosServiceOrdersComponent: React.FC<FiltrosServiceOrdersProps> = ({
         status: 'pending', // Always default to pending
         pesquisa: filtros.pesquisa || '',
         tipoInstalacao: 'todos', // Default to all types
+        evento: 'todos', // Default to all events
       };
 
       onFiltrosChange(defaultFilters);
@@ -83,6 +84,13 @@ const FiltrosServiceOrdersComponent: React.FC<FiltrosServiceOrdersProps> = ({
     });
   };
 
+  const handleEventoChange = (evento: 'new-vehicle' | 'inactivated_vehicle' | 'reactivated_vehicle' | 'todos') => {
+    onFiltrosChange({
+      ...filtros,
+      evento,
+    });
+  };
+
   const limparFiltros = () => {
     setPesquisaLocal('');
     onFiltrosChange({
@@ -90,6 +98,7 @@ const FiltrosServiceOrdersComponent: React.FC<FiltrosServiceOrdersProps> = ({
       status: 'pending', // Default to pending
       pesquisa: '',
       tipoInstalacao: 'todos',
+      evento: 'todos',
     });
   };
 
@@ -98,7 +107,8 @@ const FiltrosServiceOrdersComponent: React.FC<FiltrosServiceOrdersProps> = ({
       (filtros.empresa && filtros.empresa !== 'todos') ||
       (filtros.status && filtros.status !== 'todos') ||
       (filtros.pesquisa && filtros.pesquisa.trim() !== '') ||
-      (filtros.tipoInstalacao && filtros.tipoInstalacao !== 'todos')
+      (filtros.tipoInstalacao && filtros.tipoInstalacao !== 'todos') ||
+      (filtros.evento && filtros.evento !== 'todos')
     );
   };
 
@@ -112,6 +122,13 @@ const FiltrosServiceOrdersComponent: React.FC<FiltrosServiceOrdersProps> = ({
     { value: 'todos', label: 'Todos os tipos' },
     { value: 'installation', label: 'Instalação' },
     { value: 'uninstallation', label: 'Remoção' },
+  ];
+
+  const eventoOptions = [
+    { value: 'todos', label: 'Todos os eventos' },
+    { value: 'new-vehicle', label: 'Novo veículo' },
+    { value: 'inactivated_vehicle', label: 'Veículo inativado' },
+    { value: 'reactivated_vehicle', label: 'Veículo reativado' },
   ];
 
   return (
@@ -145,7 +162,7 @@ const FiltrosServiceOrdersComponent: React.FC<FiltrosServiceOrdersProps> = ({
 
       {/* Filtros - Sempre Visíveis */}
       <div className="border-t border-gray-200 pt-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Filtro de Empresa */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -209,6 +226,28 @@ const FiltrosServiceOrdersComponent: React.FC<FiltrosServiceOrdersProps> = ({
                     value={opcao.value}
                     checked={filtros.tipoInstalacao === opcao.value || (!filtros.tipoInstalacao && opcao.value === 'todos')}
                     onChange={() => handleTipoInstalacaoChange(opcao.value as 'installation' | 'uninstallation' | 'todos')}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">{opcao.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Filtro de Evento */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Evento
+            </label>
+            <div className="space-y-2">
+              {eventoOptions.map((opcao) => (
+                <label key={opcao.value} className="flex items-center">
+                  <input
+                    type="radio"
+                    name="evento"
+                    value={opcao.value}
+                    checked={filtros.evento === opcao.value || (!filtros.evento && opcao.value === 'todos')}
+                    onChange={() => handleEventoChange(opcao.value as 'new-vehicle' | 'inactivated_vehicle' | 'reactivated_vehicle' | 'todos')}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                   />
                   <span className="ml-2 text-sm text-gray-700">{opcao.label}</span>

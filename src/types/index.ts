@@ -166,6 +166,7 @@ export interface FiltrosServiceOrders {
   status?: string;
   pesquisa?: string;
   tipoInstalacao?: 'installation' | 'uninstallation' | 'todos';
+  evento?: 'new-vehicle' | 'inactivated_vehicle' | 'reactivated_vehicle' | 'todos';
 }
 
 // Tipos para API responses de ordens de serviço
