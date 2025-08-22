@@ -34,7 +34,7 @@ export const SYSTEM_USERS: AuthUser[] = [
   {
     id: '2', 
     username: 'lwsim',
-    password: '$2b$10$acR1sIitcXGEW4UfR3YbxuNhtLe4MHpIm/8ZEI1akmckURmc2mCq6', // lwsim123
+    password: '$2b$10$g887c4XZLd8O9NMaC8BL0eh60hOfW2Pi6BMWDZTnBuVQpLQhAFbpa',
     name: 'LW SIM',
     email: 'lwsim@empresa.com', 
     role: 'lwsim'
@@ -42,7 +42,7 @@ export const SYSTEM_USERS: AuthUser[] = [
   {
     id: '3',
     username: 'binsat', 
-    password: '$2b$10$NIOgmLUQn3hKCvc959CzzOwerCvTW36Tcl87YXAj9E5996X3JgU4C', // binsat123
+    password: '$2b$10$eWdro6Cy/seWTC/r1FcLzejiG3r5GUVW4rtP5c71aXOdnrwjUxwZ.', 
     name: 'Binsat',
     email: 'binsat@empresa.com',
     role: 'binsat'
@@ -50,7 +50,7 @@ export const SYSTEM_USERS: AuthUser[] = [
   {
     id: '4',
     username: 'tagpro',
-    password: '$2b$10$RJw9k3VxKsq/CvrXJUrt5Oth/df4itMOdTpDSfITdf9n49p3hnprC', // tagpro123  
+    password: '$2b$10$pIa.xel3rLrcmztJGWtfpeRs.ymNf80H.RvUfe2Zf0ScJ09cRLbFq',
     name: 'TagPro',
     email: 'tagpro@empresa.com',
     role: 'tagpro'
