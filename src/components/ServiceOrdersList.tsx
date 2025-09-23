@@ -6,6 +6,7 @@ import { FileText, Calendar, Clock, CheckCircle, AlertCircle, Car, User, Check }
 import { ServiceOrder } from '@/types';
 import { useToast } from '@/contexts/ToastContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUpdateServiceOrderStatus } from '@/hooks/useUpdateServiceOrderStatus';
 
 interface ServiceOrdersListProps {
   serviceOrders: ServiceOrder[];
@@ -222,30 +223,20 @@ const ServiceOrderCard = ({
   onStatusUpdate?: (id: string, status: string) => void;
 }) => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
   const { showSuccess, showError } = useToast();
   const { user } = useAuth();
-  
+  const updateStatusMutation = useUpdateServiceOrderStatus();
+
   const empresaConfig = serviceOrder.company ? getEmpresaConfig(serviceOrder.company) : null;
   const statusConfig = getStatusConfig(serviceOrder.status);
   const StatusIcon = statusConfig.icon;
 
   const handleCompleteOrder = async () => {
-    setIsUpdating(true);
     try {
-      // Call API to update status
-      const response = await fetch(`/api/service-orders/${serviceOrder.id}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: 'done' }),
+      await updateStatusMutation.mutateAsync({
+        serviceOrderId: serviceOrder.id,
+        status: 'done'
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro ao atualizar status da ordem de serviço');
-      }
 
       // Success
       const serviceOrderNumber = serviceOrder.serviceOrderNumber || `OS #${serviceOrder.id.slice(0, 8)}`;
@@ -263,8 +254,6 @@ const ServiceOrderCard = ({
         'Erro ao concluir ordem de serviço',
         error instanceof Error ? error.message : 'Tente novamente.'
       );
-    } finally {
-      setIsUpdating(false);
     }
   };
 
@@ -299,7 +288,7 @@ const ServiceOrderCard = ({
           {serviceOrder.status === 'pending' && canUserCompleteOrder(user?.role, serviceOrder.company) && (
             <button
               onClick={() => setShowConfirmDialog(true)}
-              disabled={isUpdating}
+              disabled={updateStatusMutation.isPending}
               className="flex items-center gap-1 px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               title="Marcar como concluído"
             >
@@ -404,7 +393,7 @@ const ServiceOrderCard = ({
         onClose={() => setShowConfirmDialog(false)}
         onConfirm={handleCompleteOrder}
         serviceOrder={serviceOrder}
-        isLoading={isUpdating}
+        isLoading={updateStatusMutation.isPending}
       />
     </div>
   );
